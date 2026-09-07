@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wise UML</title>
+  <script>
+    (function () {
+      var t = localStorage.getItem("wise-uml-theme");
+      if (t === "dark" || (!t && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <header id="toolbar">
+    <div class="brand">Wise UML</div>
+
+    <div class="tb-group">
+      <button id="btn-add-node" class="btn" title="Add a node (also: double-click canvas or right-click canvas)">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+        Node
+      </button>
+
+      <select id="rel-select" class="btn select" title="Pick a relation, then click source node and target node">
+        <option value="">Relation: none</option>
+        <option value="association">Association</option>
+        <option value="inheritance">Inheritance (extends)</option>
+        <option value="realization">Realization (implements)</option>
+        <option value="dependency">Dependency</option>
+        <option value="aggregation">Aggregation (has-a)</option>
+        <option value="composition">Composition (owns)</option>
+      </select>
+
+      <button id="btn-colorize" class="btn toggle" title="Color relations differently from class boxes">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path d="M2 12.5C4 7 7 4.5 14 3.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+        Color links
+      </button>
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <div class="tb-group">
+      <button id="btn-undo" class="btn icon" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path d="M6 3 2.5 6.5 6 10M3 6.5h6.5a4 4 0 0 1 0 8H6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button id="btn-redo" class="btn icon" title="Redo (Ctrl+Shift+Z)">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path d="M10 3l3.5 3.5L10 10M13 6.5H6.5a4 4 0 0 0 0 8H10" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button id="btn-export" class="btn" title="Export / Import">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Export
+      </button>
+      <button id="btn-theme" class="btn icon" title="Toggle light / dark theme">
+        <svg id="icon-theme" viewBox="0 0 16 16" width="15" height="15"></svg>
+      </button>
+      <button id="btn-clear" class="btn icon danger" title="Clear diagram">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="canvas-wrap">
+    <div id="viewport">
+      <svg id="edges">
+        <defs>
+          <marker id="m-arrow" viewBox="0 0 12 14" markerWidth="12" markerHeight="14" refX="10" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,1 L11,7 L1,13" class="mk-stroke" />
+          </marker>
+          <marker id="m-triangle" viewBox="0 0 14 14" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,1 L13,7 L1,13 Z" class="mk-bg" />
+          </marker>
+          <marker id="m-diamond-hollow" viewBox="0 0 16 10" markerWidth="16" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,5 L8,1 L15,5 L8,9 Z" class="mk-bg" />
+          </marker>
+          <marker id="m-diamond-filled" viewBox="0 0 16 10" markerWidth="16" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,5 L8,1 L15,5 L8,9 Z" class="mk-fill" />
+          </marker>
+        </defs>
+        <g id="edge-paths"></g>
+      </svg>
+      <div id="nodes"></div>
+    </div>
+  </main>
+
+  <div id="zoom-widget">
+    <button id="zoom-out" title="Zoom out">−</button>
+    <span id="zoom-label">100%</span>
+    <button id="zoom-in" title="Zoom in">+</button>
+    <button id="zoom-fit" title="Fit view">⤢</button>
+  </div>
+
+  <div id="hint"></div>
+  <div id="toast"></div>
+  <input type="file" id="file-import" accept=".json" hidden />
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
