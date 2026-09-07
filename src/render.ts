@@ -18,7 +18,6 @@ const edgesSvg = document.querySelector<SVGSVGElement>('#edges') as SVGSVGElemen
 const edgePaths = document.querySelector<SVGGElement>('#edge-paths') as SVGGElement;
 const zoomLabel = document.getElementById('zoom-label') as HTMLSpanElement;
 const btnColorize = document.getElementById('btn-colorize') as HTMLButtonElement;
-const relSelect = document.getElementById('rel-select') as HTMLSelectElement;
 
 export { wrap, nodesLayer };
 
@@ -92,11 +91,6 @@ export function syncColorize(): void {
   btnColorize.classList.toggle('is-active', state.colorize);
 }
 
-export function syncRelSelect(): void {
-  relSelect.value = state.linkKind ?? '';
-  relSelect.classList.toggle('is-active', !!state.linkKind);
-}
-
 function memberRow(n: UmlNode, m: Member, key: MemberSection): HTMLDivElement {
   const row = document.createElement('div');
   row.className = 'member';
@@ -137,7 +131,7 @@ export function renderNodes(): void {
       'node kind-' +
       n.kind +
       (selNode(n.id) ? ' selected' : '') +
-      (state.pendingFrom === n.id ? ' link-source' : '');
+      (state.linkFrom === n.id ? ' link-source' : '');
     el.dataset.id = n.id;
     el.style.left = n.x + 'px';
     el.style.top = n.y + 'px';
@@ -185,9 +179,25 @@ export function onBorder(n: UmlNode, px: number, py: number): boolean {
   const h = n._h ?? 100;
   const lx = px - n.x;
   const ly = py - n.y;
-  if (lx < -4 || ly < -4 || lx > w + 4 || ly > h + 4) return false;
-  const m = 8;
+  if (lx < -6 || ly < -6 || lx > w + 6 || ly > h + 6) return false;
+  const m = 12;
   return lx < m || lx > w - m || ly < m || ly > h - m;
+}
+
+export function nearestBorderPoint(n: UmlNode, px: number, py: number): { x: number; y: number } {
+  const w = n._w ?? 220;
+  const h = n._h ?? 100;
+  const x = clamp(px - n.x, 0, w);
+  const y = clamp(py - n.y, 0, h);
+  const dl = x;
+  const dr = w - x;
+  const dt = y;
+  const db = h - y;
+  const m = Math.min(dl, dr, dt, db);
+  if (m === dl) return { x: n.x, y: n.y + y };
+  if (m === dr) return { x: n.x + w, y: n.y + y };
+  if (m === dt) return { x: n.x + x, y: n.y };
+  return { x: n.x + x, y: n.y + h };
 }
 
 function edgeLabelText(x: number, y: number, txt: string, cls: string): SVGTextElement {
@@ -202,6 +212,7 @@ function edgeLabelText(x: number, y: number, txt: string, cls: string): SVGTextE
 
 export function renderEdges(): void {
   edgePaths.textContent = '';
+  (document.getElementById('link-ghost') as SVGGElement | null)?.replaceChildren();
   for (const e of state.edges) {
     const a = nodeById(e.from);
     const b = nodeById(e.to);
@@ -287,7 +298,7 @@ export function renderAll(): void {
 export function updateSelectionStyles(): void {
   nodesLayer.querySelectorAll<HTMLElement>('.node').forEach(el => {
     el.classList.toggle('selected', selNode(el.dataset.id ?? ''));
-    el.classList.toggle('link-source', state.pendingFrom === el.dataset.id);
+    el.classList.toggle('link-source', state.linkFrom === el.dataset.id);
   });
   edgePaths.querySelectorAll<SVGGElement>('.edge-g').forEach(g => {
     g.classList.toggle('selected', selEdge(g.dataset.id ?? ''));

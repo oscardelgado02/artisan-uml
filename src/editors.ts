@@ -14,7 +14,7 @@ import { anchor, nodesLayer, renderAll, renderEdges, wrap } from './render';
 import { consumePendingPre, pendingPre, pushPre, save, serialize } from './storage';
 
 export const DEFAULT_HINT =
-  'Double-click canvas: new class. Drag a node border onto another node (or right-drag) to link. Esc cancels.';
+  'Hover a class border: a dot appears — click or drag it onto another class to link (or right-click → Relations). Esc cancels.';
 
 export const activePopoverRef: { current: { el: HTMLDivElement; close: () => void } | null } = {
   current: null,

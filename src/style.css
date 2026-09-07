@@ -201,7 +201,7 @@ button {
 }
 
 #edges.colorize {
-  --edge-c: var(--primary-from);
+  --edge-c: var(--vis-orange);
 }
 
 .edge-g {
@@ -280,6 +280,20 @@ button {
   left: 0;
 }
 
+#port-dot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--primary-from);
+  border: 2px solid var(--card-bg);
+  box-shadow: 0 0 0 2px var(--primary-from);
+  pointer-events: none;
+  z-index: 10;
+  display: none;
+}
+
 .node {
   position: absolute;
   min-width: 210px;
@@ -321,6 +335,11 @@ button {
 
 .node.link-source {
   box-shadow: 0 0 0 3px var(--accent-glow), 0 4px 16px var(--accent-glow);
+}
+
+.node.link-target {
+  border-color: var(--card-border-hover);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .node-head {

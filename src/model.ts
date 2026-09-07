@@ -111,8 +111,9 @@ export interface AppState {
   seq: number;
   nodes: UmlNode[];
   edges: UmlEdge[];
+  linkFrom: string | null;
+  linkPoint: { x: number; y: number } | null;
   linkKind: EdgeKind | null;
-  pendingFrom: string | null;
   selected: Selection | null;
   colorize: boolean;
   cam: Camera;
@@ -122,8 +123,9 @@ export const state: AppState = {
   seq: 1,
   nodes: [],
   edges: [],
+  linkFrom: null,
+  linkPoint: null,
   linkKind: null,
-  pendingFrom: null,
   selected: null,
   colorize: false,
   cam: { x: 0, y: 0, z: 1 },

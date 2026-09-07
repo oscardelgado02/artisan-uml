@@ -1,6 +1,6 @@
 import { state } from './model';
 import type { Camera, UmlEdge, UmlNode } from './model';
-import { applyCam, renderAll, syncColorize, syncRelSelect } from './render';
+import { applyCam, renderAll, syncColorize } from './render';
 
 export const LS_KEY = 'wise-uml-v1';
 
@@ -56,7 +56,9 @@ export function loadInto(data: SerializedDiagram): void {
       ? { ...data.cam }
       : { x: 0, y: 0, z: 1 };
   state.selected = null;
-  state.pendingFrom = null;
+  state.linkFrom = null;
+  state.linkPoint = null;
+  state.linkKind = null;
   for (const n of state.nodes) {
     if (!Array.isArray(n.attributes)) n.attributes = [];
     if (!Array.isArray(n.methods)) n.methods = [];
@@ -91,7 +93,6 @@ export function undo(): void {
   future.push(serialize());
   loadInto(JSON.parse(past.pop() as string) as SerializedDiagram);
   syncColorize();
-  syncRelSelect();
   renderAll();
   applyCam();
   save();
@@ -103,7 +104,6 @@ export function redo(): void {
   past.push(serialize());
   loadInto(JSON.parse(future.pop() as string) as SerializedDiagram);
   syncColorize();
-  syncRelSelect();
   renderAll();
   applyCam();
   save();

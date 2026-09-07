@@ -15,23 +15,20 @@ import {
 import type { EdgeKind, NodeKind } from './model';
 import {
   applyCam,
-  anchor,
   fitView,
+  nearestBorderPoint,
   nodesLayer,
   onBorder,
   renderAll,
   renderEdges,
-  renderNodes,
   svgEl,
   syncColorize,
-  syncRelSelect,
   toCanvas,
   updateSelectionStyles,
   viewCenter,
   zoomAt,
   wrap,
 } from './render';
-import type { UmlNode } from './model';
 import {
   LS_KEY,
   loadInto,
@@ -59,7 +56,6 @@ import { copyPlantUML, downloadPlantUML, exportJSON, importJSONFile } from './ex
 import type { MenuEntry, MenuItem } from './types';
 
 const btnAddNode = document.getElementById('btn-add-node') as HTMLButtonElement;
-const relSelect = document.getElementById('rel-select') as HTMLSelectElement;
 const btnColorize = document.getElementById('btn-colorize') as HTMLButtonElement;
 const btnUndo = document.getElementById('btn-undo') as HTMLButtonElement;
 const btnRedo = document.getElementById('btn-redo') as HTMLButtonElement;
@@ -90,10 +86,16 @@ interface PanState {
 
 let pan: PanState | null = null;
 let drag: DragState | null = null;
-let downNode: string | null = null;
-let relDrag: { from: string; sx: number; sy: number; moved: boolean } | null = null;
 let ghostLine: SVGLineElement | null = null;
-let suppressNodeCtx = false;
+let downPort: { id: string; point: { x: number; y: number }; sx: number; sy: number } | null = null;
+let lastMouse = { x: 0, y: 0 };
+let cursorNode: HTMLElement | null = null;
+let suppressClick = false;
+
+function suppressNextClick(): void {
+  suppressClick = true;
+  setTimeout(() => (suppressClick = false), 0);
+}
 
 function addNodeAt(kind: NodeKind, cx?: number, cy?: number): void {
   const pos = cx == null || cy == null ? viewCenter() : { x: cx, y: cy };
@@ -192,35 +194,47 @@ function changeKind(id: string, kind: NodeKind): void {
   save();
 }
 
-function linkStep(nodeId: string): void {
-  if (!state.pendingFrom) {
-    state.pendingFrom = nodeId;
-    if (!state.linkKind) {
-      state.linkKind = 'association';
-      syncRelSelect();
-    }
-    setHint(
-      `Linking ${EDGE_KINDS[state.linkKind].label}: click the target node — click the same node again for a self-relation (Esc to cancel)`
-    );
-    renderNodes();
-  } else {
-    const from = state.pendingFrom;
-    state.pendingFrom = null;
-    createEdge(from, nodeId, state.linkKind ?? 'association');
-    setHint(
-      `Linking ${EDGE_KINDS[state.linkKind ?? 'association'].label}: click the source node, then the target node (Esc to cancel)`
-    );
-    renderNodes();
-  }
+function cancelLinkMode(): void {
+  if (!state.linkFrom && !state.linkKind) return;
+  state.linkFrom = null;
+  state.linkPoint = null;
+  state.linkKind = null;
+  removeGhost();
+  clearLinkTarget();
+  setHint(DEFAULT_HINT);
+  updateSelectionStyles();
 }
 
-function cancelLinkMode(): void {
-  if (!state.linkKind && !state.pendingFrom) return;
-  state.linkKind = null;
-  state.pendingFrom = null;
-  syncRelSelect();
-  setHint(DEFAULT_HINT);
-  renderAll();
+function startLinkFrom(nodeId: string, kind: EdgeKind | null, mx: number, my: number): void {
+  const n = nodeById(nodeId);
+  if (!n) return;
+  closePopovers();
+  const c = toCanvas(mx, my);
+  state.linkFrom = nodeId;
+  state.linkPoint = nearestBorderPoint(n, c.x, c.y);
+  state.linkKind = kind;
+  setHint(
+    kind
+      ? `${EDGE_KINDS[kind].label}: click the target node (Esc to cancel)`
+      : 'Click the target node to pick a relation kind (Esc to cancel)'
+  );
+  updateSelectionStyles();
+  updateGhost(mx, my);
+}
+
+function completeLink(e: MouseEvent): void {
+  const target = (e.target as Element).closest('.node');
+  if (!target) {
+    cancelLinkMode();
+    return;
+  }
+  const from = state.linkFrom;
+  const kind = state.linkKind;
+  const to = target.getAttribute('data-id') ?? '';
+  cancelLinkMode();
+  if (!from || !to) return;
+  if (kind) createEdge(from, to, kind);
+  else openRelKindMenu(from, to, e.clientX, e.clientY);
 }
 
 function applyThemeIcon(): void {
@@ -245,6 +259,15 @@ function nodeMenu(nodeId: string, x: number, y: number): void {
     ...(n && n.kind !== 'enum' ? [{ label: 'Add method', action: () => addMember(nodeId, 'methods') } as MenuItem] : []),
     '-',
     { label: 'Set kind', sub: kindMenuEntries(kind => changeKind(nodeId, kind)) },
+    {
+      label: 'Relations',
+      sub: (Object.entries(EDGE_KINDS) as Array<[EdgeKind, (typeof EDGE_KINDS)[EdgeKind]]>).map(
+        ([k, v]) => ({
+          label: v.label,
+          action: () => startLinkFrom(nodeId, k, lastMouse.x, lastMouse.y),
+        })
+      ),
+    },
     '-',
     { label: 'Duplicate', action: () => duplicateNode(nodeId) },
     { label: 'Delete', danger: true, action: () => deleteNode(nodeId) },
@@ -320,20 +343,45 @@ function removeGhost(): void {
   ghostLine = null;
 }
 
-function updateGhost(e: MouseEvent): void {
-  const from = relDrag ? nodeById(relDrag.from) : null;
+function portDot(): HTMLDivElement {
+  let el = document.getElementById('port-dot') as HTMLDivElement | null;
+  if (!el || !el.isConnected) {
+    el = document.createElement('div');
+    el.id = 'port-dot';
+    nodesLayer.appendChild(el);
+  }
+  return el;
+}
+
+function hidePortDot(): void {
+  const el = document.getElementById('port-dot');
+  if (el) el.style.display = 'none';
+}
+
+function clearLinkTarget(): void {
+  nodesLayer.querySelectorAll<HTMLElement>('.node.link-target').forEach(el => el.classList.remove('link-target'));
+}
+
+function updateGhost(mx: number, my: number): void {
+  const from = state.linkFrom ? nodeById(state.linkFrom) : null;
   if (!from) return;
-  if (!ghostLine) {
+  if (!ghostLine || !ghostLine.isConnected) {
     ghostLine = svgEl('line') as SVGLineElement;
     ghostLine.setAttribute('class', 'ghost-line');
     (document.querySelector<SVGGElement>('#link-ghost') as SVGGElement).appendChild(ghostLine);
   }
-  const c = toCanvas(e.clientX, e.clientY);
-  const p = onBorder(from, c.x, c.y) ? c : anchor(from, { x: c.x - 1, y: c.y - 1, _w: 2, _h: 2 } as UmlNode);
-  ghostLine.setAttribute('x1', String(p.x));
-  ghostLine.setAttribute('y1', String(p.y));
+  const c = toCanvas(mx, my);
+  const o = state.linkPoint ?? nearestBorderPoint(from, c.x, c.y);
+  ghostLine.setAttribute('x1', String(o.x));
+  ghostLine.setAttribute('y1', String(o.y));
   ghostLine.setAttribute('x2', String(c.x));
   ghostLine.setAttribute('y2', String(c.y));
+  const under = document.elementFromPoint(mx, my)?.closest('.node');
+  const tid = under?.getAttribute('data-id') ?? null;
+  nodesLayer.querySelectorAll<HTMLElement>('.node.link-target').forEach(el => {
+    if (el.dataset.id !== tid) el.classList.remove('link-target');
+  });
+  if (tid && under && !under.classList.contains('link-target')) under.classList.add('link-target');
 }
 
 function openRelKindMenu(from: string, to: string, x: number, y: number): void {
@@ -355,23 +403,25 @@ wrap.addEventListener('mousedown', (e: MouseEvent) => {
     e.preventDefault();
     return;
   }
-  if (e.button === 2) {
-    const nodeEl = target.closest('.node');
-    if (nodeEl && !state.linkKind) {
-      relDrag = { from: nodeEl.getAttribute('data-id') ?? '', sx: e.clientX, sy: e.clientY, moved: false };
-      e.preventDefault();
+  if (e.button !== 0) return;
+  if (state.linkFrom) {
+    if (target.closest('.node')) {
+      completeLink(e);
+      suppressNextClick();
+    } else {
+      cancelLinkMode();
     }
     return;
   }
-  if (e.button !== 0) return;
   const nodeEl = target.closest('.node');
   if (nodeEl) {
     const id = nodeEl.getAttribute('data-id') ?? '';
     const n = nodeById(id);
     if (!n) return;
     const p = toCanvas(e.clientX, e.clientY);
-    if (state.linkKind || onBorder(n, p.x, p.y)) {
-      downNode = id;
+    const interactive = target.closest('.member') || target.closest('.add-btn') || target.closest('.node-name');
+    if (!interactive && onBorder(n, p.x, p.y)) {
+      downPort = { id, point: nearestBorderPoint(n, p.x, p.y), sx: e.clientX, sy: e.clientY };
     } else {
       drag = { id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false };
     }
@@ -382,10 +432,29 @@ wrap.addEventListener('mousedown', (e: MouseEvent) => {
 });
 
 document.addEventListener('mousemove', (e: MouseEvent) => {
-  if (relDrag) {
-    if (!relDrag.moved && Math.hypot(e.clientX - relDrag.sx, e.clientY - relDrag.sy) < 4) return;
-    relDrag.moved = true;
-    updateGhost(e);
+  lastMouse.x = e.clientX;
+  lastMouse.y = e.clientY;
+  if (!(e.target as Element).closest?.('.node')) {
+    hidePortDot();
+    if (cursorNode) {
+      cursorNode.style.cursor = '';
+      cursorNode = null;
+    }
+  }
+  if (state.linkFrom) {
+    updateGhost(e.clientX, e.clientY);
+    return;
+  }
+  if (downPort) {
+    if (Math.hypot(e.clientX - downPort.sx, e.clientY - downPort.sy) > 3) {
+      if (!state.linkFrom) {
+        state.linkFrom = downPort.id;
+        state.linkPoint = downPort.point;
+        setHint('Drop on a class to pick a relation kind — release on empty canvas to cancel');
+        updateSelectionStyles();
+      }
+      updateGhost(e.clientX, e.clientY);
+    }
     return;
   }
   if (pan) {
@@ -413,32 +482,14 @@ document.addEventListener('mousemove', (e: MouseEvent) => {
 
 document.addEventListener('mouseup', (e: MouseEvent) => {
   const target = e.target as Element;
-  if (e.button === 2) {
-    if (relDrag) {
-      const { from, moved } = relDrag;
-      relDrag = null;
-      removeGhost();
-      if (moved) {
-        suppressNodeCtx = true;
-        const drop = document.elementFromPoint(e.clientX, e.clientY)?.closest('.node');
-        const to = drop?.getAttribute('data-id') ?? '';
-        if (to) openRelKindMenu(from, to, e.clientX, e.clientY);
-      }
-    }
-    return;
-  }
+  if (e.button !== 0) return;
   if (pan) {
     const moved = Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) > 3;
     wrap.classList.remove('grabbing');
     pan = null;
     saveThrottled();
     if (moved) return;
-    if (state.linkKind || state.pendingFrom) {
-      cancelLinkMode();
-      return;
-    }
     if (
-      !drag &&
       !target.closest('.node') &&
       !target.closest('.edge-g') &&
       !target.closest('.popover') &&
@@ -450,13 +501,28 @@ document.addEventListener('mouseup', (e: MouseEvent) => {
     }
     return;
   }
-  if (!drag) {
-    if (downNode) {
-      linkStep(downNode);
-      downNode = null;
+  if (downPort) {
+    const dp = downPort;
+    downPort = null;
+    if (state.linkFrom) {
+      const from = state.linkFrom;
+      const kind = state.linkKind;
+      const to = target.closest('.node')?.getAttribute('data-id') ?? '';
+      cancelLinkMode();
+      if (to) {
+        if (kind) createEdge(from, to, kind);
+        else openRelKindMenu(from, to, e.clientX, e.clientY);
+      }
+    } else {
+      state.linkFrom = dp.id;
+      state.linkPoint = dp.point;
+      setHint('Click the target node to link (click the same node for a self-relation, Esc cancels)');
+      updateSelectionStyles();
+      updateGhost(e.clientX, e.clientY);
     }
     return;
   }
+  if (!drag) return;
   const wasDrag = drag.moved;
   const id = drag.id;
   drag = null;
@@ -464,12 +530,8 @@ document.addEventListener('mouseup', (e: MouseEvent) => {
     saveThrottled();
     return;
   }
-  if (state.linkKind || state.pendingFrom) {
-    linkStep(id);
-  } else {
-    state.selected = { type: 'node', id };
-    updateSelectionStyles();
-  }
+  state.selected = { type: 'node', id };
+  updateSelectionStyles();
 });
 
 wrap.addEventListener(
@@ -502,7 +564,11 @@ nodesLayer.addEventListener('click', (e: MouseEvent) => {
     addMember(id, addBtn.getAttribute('data-action') === 'add-attributes' ? 'attributes' : 'methods');
     return;
   }
-  if (state.linkKind) return;
+  if (suppressClick) {
+    suppressClick = false;
+    return;
+  }
+  if (state.linkFrom) return;
   const nameEl = (e.target as Element).closest('.node-name');
   if (nameEl) {
     const id = nameEl.closest('.node')?.getAttribute('data-id') ?? '';
@@ -518,11 +584,7 @@ nodesLayer.addEventListener('click', (e: MouseEvent) => {
 
 nodesLayer.addEventListener('contextmenu', (e: MouseEvent) => {
   e.preventDefault();
-  if (suppressNodeCtx) {
-    suppressNodeCtx = false;
-    return;
-  }
-  if (state.linkKind) {
+  if (state.linkFrom) {
     cancelLinkMode();
     return;
   }
@@ -550,7 +612,7 @@ const edgesSvg = document.querySelector<SVGSVGElement>('#edges') as SVGSVGElemen
 
 edgesSvg.addEventListener('click', (e: MouseEvent) => {
   const g = (e.target as Element).closest('.edge-g');
-  if (!g || state.linkKind) return;
+  if (!g || state.linkFrom) return;
   const id = g.getAttribute('data-id') ?? '';
   state.selected = { type: 'edge', id };
   renderEdges();
@@ -562,10 +624,6 @@ edgesSvg.addEventListener('contextmenu', (e: MouseEvent) => {
   if (!g) return;
   e.preventDefault();
   e.stopPropagation();
-  if (suppressNodeCtx) {
-    suppressNodeCtx = false;
-    return;
-  }
   edgeMenu(g.getAttribute('data-id') ?? '', e.clientX, e.clientY);
 });
 
@@ -573,32 +631,42 @@ wrap.addEventListener('contextmenu', (e: MouseEvent) => {
   const target = e.target as Element;
   if (target.closest('.node') || target.closest('.edge-g')) return;
   e.preventDefault();
-  if (suppressNodeCtx) {
-    suppressNodeCtx = false;
-    return;
-  }
-  if (state.linkKind) {
+  if (state.linkFrom) {
     cancelLinkMode();
     return;
   }
   canvasMenu(e.clientX, e.clientY);
 });
 
-let cursorNode: Element | null = null;
-
 nodesLayer.addEventListener('mousemove', (e: MouseEvent) => {
-  if (drag || relDrag || state.linkKind) return;
   const nodeEl = (e.target as Element).closest('.node');
   if (cursorNode && cursorNode !== nodeEl) {
-    (cursorNode as HTMLElement).style.cursor = '';
+    cursorNode.style.cursor = '';
     cursorNode = null;
   }
-  if (!nodeEl) return;
+  if (!nodeEl || drag || downPort || pan || state.linkFrom) {
+    hidePortDot();
+    return;
+  }
   const n = nodeById(nodeEl.getAttribute('data-id') ?? '');
+  if (!n) {
+    hidePortDot();
+    return;
+  }
   const p = toCanvas(e.clientX, e.clientY);
-  const cross = !!n && onBorder(n, p.x, p.y);
-  (nodeEl as HTMLElement).style.cursor = cross ? 'crosshair' : '';
-  if (cross) cursorNode = nodeEl;
+  const el = nodeEl as HTMLElement;
+  if (onBorder(n, p.x, p.y)) {
+    const bp = nearestBorderPoint(n, p.x, p.y);
+    const dot = portDot();
+    dot.style.left = bp.x + 'px';
+    dot.style.top = bp.y + 'px';
+    dot.style.display = 'block';
+    el.style.cursor = 'crosshair';
+    cursorNode = el;
+  } else {
+    hidePortDot();
+    el.style.cursor = '';
+  }
 });
 
 document.addEventListener(
@@ -621,11 +689,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closePopovers();
     cancelLinkMode();
-    if (relDrag) {
-      relDrag = null;
-      removeGhost();
-    }
-    downNode = null;
+    downPort = null;
+    hidePortDot();
     if (state.selected) {
       state.selected = null;
       updateSelectionStyles();
@@ -644,19 +709,6 @@ document.addEventListener('keydown', e => {
 btnAddNode.addEventListener('click', () => {
   const r = btnAddNode.getBoundingClientRect();
   openMenu(r.left, r.bottom + 6, kindMenuEntries(kind => addNodeAt(kind)));
-});
-
-relSelect.addEventListener('change', () => {
-  const v = relSelect.value;
-  state.linkKind = (v || null) as EdgeKind | null;
-  state.pendingFrom = null;
-  syncRelSelect();
-  setHint(
-    v
-      ? `Linking ${EDGE_KINDS[v as EdgeKind].label}: click a node, then the target node — click the same node for a self-relation (Esc to cancel)`
-      : DEFAULT_HINT
-  );
-  renderAll();
 });
 
 btnColorize.addEventListener('click', () => {
@@ -737,7 +789,6 @@ function boot(): void {
     loadInto(seedData());
   }
   syncColorize();
-  syncRelSelect();
   applyThemeIcon();
   updateUndoButtons();
   renderAll();
