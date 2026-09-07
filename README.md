@@ -25,8 +25,11 @@ pnpm preview     # serve the production build
 
 - **Kinds**: class, abstract class, interface, enum, record, struct
   (stereotypes like `«interface»` / `«enum»` are shown on the header).
-- **Add members in one click** — every box has `+ attribute` / `+ method` buttons,
-  or right-click a box → *Add attribute / Add method*.
+- **Kind-appropriate members** — interfaces show **properties + methods**,
+  enums show **values** only (`Name = 1`, value optional), everything else has
+  attributes + methods.
+- **Add members in one click** — every box has `+ attribute` / `+ method` /
+  `+ value` buttons, or right-click a box → *Add attribute / method / value*.
 - **Inline editing** — click the class name (or right-click → *Rename*) to edit it in place.
   Double-click the empty canvas to instantly create a new class and start naming it.
 - **Member editor popover** — click any member row to edit:
@@ -41,8 +44,14 @@ pnpm preview     # serve the production build
 
 ### Relations
 
-Pick a relation in the toolbar, then click the **source** node and the **target** node
-(`Esc` cancels). Each relation draws with its proper UML notation:
+Three ways to create one:
+
+1. **Drag a node's border** (the outer ~8 px ring, crosshair cursor) onto another
+   node — a menu pops up to pick the relation kind. Drop it on the same node for
+   a **self-relation** (e.g. a singleton).
+2. **Right-drag** from a node to a node — same menu on drop.
+3. Pick a relation in the toolbar, then click the **source** node and the
+   **target** node (`Esc` or a click on empty canvas cancels).
 
 | Relation | Notation |
 | --- | --- |
@@ -52,6 +61,8 @@ Pick a relation in the toolbar, then click the **source** node and the **target*
 | Aggregation (has-a) | hollow diamond at the owner |
 | Association | solid line + open arrow |
 | Dependency | dashed line + open arrow |
+
+Self-relations render as a small loop on the right side of the node.
 
 Click any relation to edit its **type, label and multiplicities** (`1`, `0..*`, …),
 reverse it, or delete it. Toggle **Color links** in the toolbar to paint all
@@ -68,7 +79,8 @@ relations in the accent color so they stand out from the class boxes.
 
 ### Import / export
 
-- **Export / Import JSON** — full-fidelity diagram files
+- **Export / Import JSON** — full-fidelity diagram files (Import has its own
+  toolbar button, and also lives in the Export menu)
 - **PlantUML** — copy or download your diagram as `.puml` text
 
 ## Project structure

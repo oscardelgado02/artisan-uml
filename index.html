@@ -54,6 +54,10 @@
       <button id="btn-redo" class="btn icon" title="Redo (Ctrl+Shift+Z)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path d="M10 3l3.5 3.5L10 10M13 6.5H6.5a4 4 0 0 0 0 8H10" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+      <button id="btn-import" class="btn" title="Import diagram JSON">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 10V2M5 5l3-3 3 3M3 13h10" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Import
+      </button>
       <button id="btn-export" class="btn" title="Export / Import">
         <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Export
@@ -85,6 +89,7 @@
           </marker>
         </defs>
         <g id="edge-paths"></g>
+        <g id="link-ghost"></g>
       </svg>
       <div id="nodes"></div>
     </div>

@@ -173,6 +173,9 @@ button {
   position: relative;
   overflow: hidden;
   cursor: grab;
+  background-image: radial-gradient(var(--dot-color) 1px, transparent 1.2px);
+  background-size: 26px 26px;
+  background-repeat: repeat;
 }
 
 #canvas-wrap.grabbing {
@@ -186,8 +189,6 @@ button {
   width: 100%;
   height: 100%;
   transform-origin: 0 0;
-  background-image: radial-gradient(var(--dot-color) 1px, transparent 1.2px);
-  background-size: 26px 26px;
 }
 
 #edges {
@@ -232,6 +233,13 @@ button {
   fill: none;
   pointer-events: stroke;
   cursor: pointer;
+}
+
+.ghost-line {
+  stroke: var(--primary-from);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
 }
 
 .mk-stroke {

@@ -15,11 +15,14 @@ import {
 import type { EdgeKind, NodeKind } from './model';
 import {
   applyCam,
+  anchor,
   fitView,
   nodesLayer,
+  onBorder,
   renderAll,
   renderEdges,
   renderNodes,
+  svgEl,
   syncColorize,
   syncRelSelect,
   toCanvas,
@@ -28,6 +31,7 @@ import {
   zoomAt,
   wrap,
 } from './render';
+import type { UmlNode } from './model';
 import {
   LS_KEY,
   loadInto,
@@ -52,7 +56,7 @@ import {
   toast,
 } from './editors';
 import { copyPlantUML, downloadPlantUML, exportJSON, importJSONFile } from './exporters';
-import type { MenuItem } from './types';
+import type { MenuEntry, MenuItem } from './types';
 
 const btnAddNode = document.getElementById('btn-add-node') as HTMLButtonElement;
 const relSelect = document.getElementById('rel-select') as HTMLSelectElement;
@@ -86,6 +90,10 @@ interface PanState {
 
 let pan: PanState | null = null;
 let drag: DragState | null = null;
+let downNode: string | null = null;
+let relDrag: { from: string; sx: number; sy: number; moved: boolean } | null = null;
+let ghostLine: SVGLineElement | null = null;
+let suppressNodeCtx = false;
 
 function addNodeAt(kind: NodeKind, cx?: number, cy?: number): void {
   const pos = cx == null || cy == null ? viewCenter() : { x: cx, y: cy };
@@ -111,13 +119,23 @@ function addMember(nodeId: string, key: 'attributes' | 'methods'): void {
   if (!n) return;
   pushPre();
   const m =
-    key === 'attributes'
-      ? { id: uid(), vis: '-' as const, name: '', type: 'int', mods: [] as string[], params: null }
-      : { id: uid(), vis: '+' as const, name: '', type: 'void', mods: [] as string[], params: '' };
+    n.kind === 'enum'
+      ? { id: uid(), vis: '-' as const, name: '', type: '', mods: [] as string[], params: null }
+      : key === 'attributes'
+        ? { id: uid(), vis: '-' as const, name: '', type: 'int', mods: [] as string[], params: null }
+        : { id: uid(), vis: '+' as const, name: '', type: 'void', mods: [] as string[], params: '' };
   n[key].push(m);
   renderAll();
   save();
   openMemberEditor(nodeId, m.id);
+}
+
+function createEdge(from: string, to: string, kind: EdgeKind): void {
+  pushPre();
+  state.edges.push({ id: uid(), kind, from, to, label: '', fromMult: '', toMult: '' });
+  renderAll();
+  save();
+  toast('Relation added');
 }
 
 function deleteNode(id: string): void {
@@ -177,27 +195,22 @@ function changeKind(id: string, kind: NodeKind): void {
 function linkStep(nodeId: string): void {
   if (!state.pendingFrom) {
     state.pendingFrom = nodeId;
-    setHint('Linking: now click the target node (Esc to cancel)');
-    renderNodes();
-  } else if (state.pendingFrom === nodeId) {
-    state.pendingFrom = null;
-    setHint(`Linking ${EDGE_KINDS[state.linkKind ?? 'association'].label}: click the source node, then the target node`);
+    if (!state.linkKind) {
+      state.linkKind = 'association';
+      syncRelSelect();
+    }
+    setHint(
+      `Linking ${EDGE_KINDS[state.linkKind].label}: click the target node — click the same node again for a self-relation (Esc to cancel)`
+    );
     renderNodes();
   } else {
-    pushPre();
-    state.edges.push({
-      id: uid(),
-      kind: state.linkKind as EdgeKind,
-      from: state.pendingFrom,
-      to: nodeId,
-      label: '',
-      fromMult: '',
-      toMult: '',
-    });
+    const from = state.pendingFrom;
     state.pendingFrom = null;
-    renderAll();
-    save();
-    toast('Relation added');
+    createEdge(from, nodeId, state.linkKind ?? 'association');
+    setHint(
+      `Linking ${EDGE_KINDS[state.linkKind ?? 'association'].label}: click the source node, then the target node (Esc to cancel)`
+    );
+    renderNodes();
   }
 }
 
@@ -223,11 +236,13 @@ function kindMenuEntries(action: (kind: NodeKind) => void): MenuItem[] {
 }
 
 function nodeMenu(nodeId: string, x: number, y: number): void {
+  const n = nodeById(nodeId);
+  const attrLabel = n ? (n.kind === 'enum' ? 'Add value' : n.kind === 'interface' ? 'Add property' : 'Add attribute') : 'Add attribute';
   openMenu(x, y, [
     { label: 'Rename', action: () => startRename(nodeId) },
     '-',
-    { label: 'Add attribute', action: () => addMember(nodeId, 'attributes') },
-    { label: 'Add method', action: () => addMember(nodeId, 'methods') },
+    { label: attrLabel, action: () => addMember(nodeId, 'attributes') },
+    ...(n && n.kind !== 'enum' ? [{ label: 'Add method', action: () => addMember(nodeId, 'methods') } as MenuItem] : []),
     '-',
     { label: 'Set kind', sub: kindMenuEntries(kind => changeKind(nodeId, kind)) },
     '-',
@@ -240,20 +255,23 @@ function memberMenu(nodeId: string, mid: string, x: number, y: number): void {
   const n = nodeById(nodeId);
   if (!n) return;
   const key = memberKey(n, mid);
+  const isEnum = n.kind === 'enum';
   openMenu(x, y, [
     { label: 'Edit', action: () => openMemberEditor(nodeId, mid) },
     '-',
-    ...VISIBILITY.map(v => ({
-      label: `Set ${v.label} (${v.k})`,
-      action: () => {
-        pushPre();
-        const m = n.attributes.find(a => a.id === mid) ?? n.methods.find(a => a.id === mid);
-        if (m) m.vis = v.k;
-        renderAll();
-        save();
-      },
-    })),
-    '-',
+    ...(isEnum
+      ? []
+      : VISIBILITY.map(v => ({
+          label: `Set ${v.label} (${v.k})`,
+          action: () => {
+            pushPre();
+            const m = n.attributes.find(a => a.id === mid) ?? n.methods.find(a => a.id === mid);
+            if (m) m.vis = v.k;
+            renderAll();
+            save();
+          },
+        }))),
+    ...(isEnum ? [] : (['-'] as MenuEntry[])),
     {
       label: 'Delete member',
       danger: true,
@@ -297,26 +315,79 @@ function canvasMenu(x: number, y: number): void {
   ]);
 }
 
+function removeGhost(): void {
+  ghostLine?.remove();
+  ghostLine = null;
+}
+
+function updateGhost(e: MouseEvent): void {
+  const from = relDrag ? nodeById(relDrag.from) : null;
+  if (!from) return;
+  if (!ghostLine) {
+    ghostLine = svgEl('line') as SVGLineElement;
+    ghostLine.setAttribute('class', 'ghost-line');
+    (document.querySelector<SVGGElement>('#link-ghost') as SVGGElement).appendChild(ghostLine);
+  }
+  const c = toCanvas(e.clientX, e.clientY);
+  const p = onBorder(from, c.x, c.y) ? c : anchor(from, { x: c.x - 1, y: c.y - 1, _w: 2, _h: 2 } as UmlNode);
+  ghostLine.setAttribute('x1', String(p.x));
+  ghostLine.setAttribute('y1', String(p.y));
+  ghostLine.setAttribute('x2', String(c.x));
+  ghostLine.setAttribute('y2', String(c.y));
+}
+
+function openRelKindMenu(from: string, to: string, x: number, y: number): void {
+  openMenu(
+    x,
+    y,
+    (Object.entries(EDGE_KINDS) as Array<[EdgeKind, (typeof EDGE_KINDS)[EdgeKind]]>).map(([k, v]) => ({
+      label: v.label,
+      action: () => createEdge(from, to, k),
+    }))
+  );
+}
+
 wrap.addEventListener('mousedown', (e: MouseEvent) => {
+  const target = e.target as Element;
   if (e.button === 1) {
     pan = { sx: e.clientX, sy: e.clientY, cx: state.cam.x, cy: state.cam.y };
     wrap.classList.add('grabbing');
     e.preventDefault();
     return;
   }
+  if (e.button === 2) {
+    const nodeEl = target.closest('.node');
+    if (nodeEl && !state.linkKind) {
+      relDrag = { from: nodeEl.getAttribute('data-id') ?? '', sx: e.clientX, sy: e.clientY, moved: false };
+      e.preventDefault();
+    }
+    return;
+  }
   if (e.button !== 0) return;
-  const nodeEl = (e.target as Element).closest('.node');
-  if (nodeEl && !state.linkKind) {
-    const n = nodeById(nodeEl.getAttribute('data-id') ?? '');
+  const nodeEl = target.closest('.node');
+  if (nodeEl) {
+    const id = nodeEl.getAttribute('data-id') ?? '';
+    const n = nodeById(id);
     if (!n) return;
-    drag = { id: n.id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false };
-  } else if (!nodeEl) {
+    const p = toCanvas(e.clientX, e.clientY);
+    if (state.linkKind || onBorder(n, p.x, p.y)) {
+      downNode = id;
+    } else {
+      drag = { id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false };
+    }
+  } else {
     pan = { sx: e.clientX, sy: e.clientY, cx: state.cam.x, cy: state.cam.y };
     wrap.classList.add('grabbing');
   }
 });
 
 document.addEventListener('mousemove', (e: MouseEvent) => {
+  if (relDrag) {
+    if (!relDrag.moved && Math.hypot(e.clientX - relDrag.sx, e.clientY - relDrag.sy) < 4) return;
+    relDrag.moved = true;
+    updateGhost(e);
+    return;
+  }
   if (pan) {
     state.cam.x = pan.cx + (e.clientX - pan.sx);
     state.cam.y = pan.cy + (e.clientY - pan.sy);
@@ -342,17 +413,34 @@ document.addEventListener('mousemove', (e: MouseEvent) => {
 
 document.addEventListener('mouseup', (e: MouseEvent) => {
   const target = e.target as Element;
+  if (e.button === 2) {
+    if (relDrag) {
+      const { from, moved } = relDrag;
+      relDrag = null;
+      removeGhost();
+      if (moved) {
+        suppressNodeCtx = true;
+        const drop = document.elementFromPoint(e.clientX, e.clientY)?.closest('.node');
+        const to = drop?.getAttribute('data-id') ?? '';
+        if (to) openRelKindMenu(from, to, e.clientX, e.clientY);
+      }
+    }
+    return;
+  }
   if (pan) {
     const moved = Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) > 3;
     wrap.classList.remove('grabbing');
     pan = null;
     saveThrottled();
+    if (moved) return;
+    if (state.linkKind || state.pendingFrom) {
+      cancelLinkMode();
+      return;
+    }
     if (
-      !moved &&
       !drag &&
       !target.closest('.node') &&
       !target.closest('.edge-g') &&
-      !state.linkKind &&
       !target.closest('.popover') &&
       !target.closest('.ctx-menu') &&
       state.selected
@@ -362,7 +450,13 @@ document.addEventListener('mouseup', (e: MouseEvent) => {
     }
     return;
   }
-  if (!drag) return;
+  if (!drag) {
+    if (downNode) {
+      linkStep(downNode);
+      downNode = null;
+    }
+    return;
+  }
   const wasDrag = drag.moved;
   const id = drag.id;
   drag = null;
@@ -370,7 +464,7 @@ document.addEventListener('mouseup', (e: MouseEvent) => {
     saveThrottled();
     return;
   }
-  if (state.linkKind) {
+  if (state.linkKind || state.pendingFrom) {
     linkStep(id);
   } else {
     state.selected = { type: 'node', id };
@@ -424,6 +518,10 @@ nodesLayer.addEventListener('click', (e: MouseEvent) => {
 
 nodesLayer.addEventListener('contextmenu', (e: MouseEvent) => {
   e.preventDefault();
+  if (suppressNodeCtx) {
+    suppressNodeCtx = false;
+    return;
+  }
   if (state.linkKind) {
     cancelLinkMode();
     return;
@@ -464,6 +562,10 @@ edgesSvg.addEventListener('contextmenu', (e: MouseEvent) => {
   if (!g) return;
   e.preventDefault();
   e.stopPropagation();
+  if (suppressNodeCtx) {
+    suppressNodeCtx = false;
+    return;
+  }
   edgeMenu(g.getAttribute('data-id') ?? '', e.clientX, e.clientY);
 });
 
@@ -471,11 +573,32 @@ wrap.addEventListener('contextmenu', (e: MouseEvent) => {
   const target = e.target as Element;
   if (target.closest('.node') || target.closest('.edge-g')) return;
   e.preventDefault();
+  if (suppressNodeCtx) {
+    suppressNodeCtx = false;
+    return;
+  }
   if (state.linkKind) {
     cancelLinkMode();
     return;
   }
   canvasMenu(e.clientX, e.clientY);
+});
+
+let cursorNode: Element | null = null;
+
+nodesLayer.addEventListener('mousemove', (e: MouseEvent) => {
+  if (drag || relDrag || state.linkKind) return;
+  const nodeEl = (e.target as Element).closest('.node');
+  if (cursorNode && cursorNode !== nodeEl) {
+    (cursorNode as HTMLElement).style.cursor = '';
+    cursorNode = null;
+  }
+  if (!nodeEl) return;
+  const n = nodeById(nodeEl.getAttribute('data-id') ?? '');
+  const p = toCanvas(e.clientX, e.clientY);
+  const cross = !!n && onBorder(n, p.x, p.y);
+  (nodeEl as HTMLElement).style.cursor = cross ? 'crosshair' : '';
+  if (cross) cursorNode = nodeEl;
 });
 
 document.addEventListener(
@@ -498,6 +621,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closePopovers();
     cancelLinkMode();
+    if (relDrag) {
+      relDrag = null;
+      removeGhost();
+    }
+    downNode = null;
     if (state.selected) {
       state.selected = null;
       updateSelectionStyles();
@@ -525,7 +653,7 @@ relSelect.addEventListener('change', () => {
   syncRelSelect();
   setHint(
     v
-      ? `Linking ${EDGE_KINDS[v as EdgeKind].label}: click the source node, then the target node (Esc to cancel)`
+      ? `Linking ${EDGE_KINDS[v as EdgeKind].label}: click a node, then the target node — click the same node for a self-relation (Esc to cancel)`
       : DEFAULT_HINT
   );
   renderAll();
@@ -550,6 +678,10 @@ btnExport.addEventListener('click', () => {
     { label: 'Copy PlantUML', action: copyPlantUML },
     { label: 'Download PlantUML', action: downloadPlantUML },
   ]);
+});
+
+(document.getElementById('btn-import') as HTMLButtonElement).addEventListener('click', () => {
+  fileImport.click();
 });
 
 fileImport.addEventListener('change', () => {

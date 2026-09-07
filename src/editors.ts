@@ -14,7 +14,7 @@ import { anchor, nodesLayer, renderAll, renderEdges, wrap } from './render';
 import { consumePendingPre, pendingPre, pushPre, save, serialize } from './storage';
 
 export const DEFAULT_HINT =
-  'Double-click canvas: new class. Right-click: menus. Pick a Relation, then click two nodes to link them.';
+  'Double-click canvas: new class. Drag a node border onto another node (or right-drag) to link. Esc cancels.';
 
 export const activePopoverRef: { current: { el: HTMLDivElement; close: () => void } | null } = {
   current: null,
@@ -125,29 +125,30 @@ export function openMemberEditor(nodeId: string, mid: string): void {
   const rowEl = nodesLayer.querySelector<HTMLElement>(`.member[data-mid="${mid}"]`);
   pendingPre.current = serialize();
   const isMethod = key === 'methods';
+  const isEnum = n.kind === 'enum';
 
   const el = document.createElement('div');
   el.className = 'popover';
   el.innerHTML = `
     <div class="row">
-      <select class="f-vis" title="Visibility">
+      ${isEnum ? '' : `<select class="f-vis" title="Visibility">
         ${VISIBILITY.map(
           v => `<option value="${v.k}" ${v.k === m.vis ? 'selected' : ''}>${v.k} ${v.label}</option>`
         ).join('')}
-      </select>
+      </select>`}
       <input class="f-name" placeholder="name" value="${esc(m.name)}" />
-      <input class="f-type" placeholder="${isMethod ? 'return type' : 'type'}" value="${esc(m.type)}" />
+      <input class="f-type" placeholder="${isEnum ? 'value (optional)' : isMethod ? 'return type' : 'type'}" value="${esc(m.type)}" />
     </div>
     ${
-      isMethod
+      isMethod && !isEnum
         ? '<input class="f-wide f-params" placeholder="parameters, e.g. dx: int, dy: int" value="' + esc(m.params ?? '') + '" />'
         : ''
     }
-    <div class="chips">
+    ${isEnum ? '' : `<div class="chips">
       ${MODIFIERS.map(
         mod => `<button class="chip ${m.mods.includes(mod) ? 'is-active' : ''}" data-mod="${mod}">${mod}</button>`
       ).join('')}
-    </div>
+    </div>`}
     <div class="actions">
       <button class="p-btn p-del">Delete member</button>
       <button class="p-btn p-done">Done</button>
@@ -221,8 +222,11 @@ export function openEdgeEditor(eid: string): void {
   if (!a || !b) return;
   pendingPre.current = serialize();
 
-  const p1 = anchor(a, b);
-  const p2 = anchor(b, a);
+  const p1 =
+    e.from === e.to
+      ? { x: a.x + (a._w ?? 220) + 60, y: a.y + (a._h ?? 100) / 2 }
+      : anchor(a, b);
+  const p2 = p1;
   const r = wrap.getBoundingClientRect();
   const sx = r.left + state.cam.x + ((p1.x + p2.x) / 2) * state.cam.z;
   const sy = r.top + state.cam.y + ((p1.y + p2.y) / 2) * state.cam.z;

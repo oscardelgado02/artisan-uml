@@ -21,6 +21,10 @@ function toPlantUML(): string {
     const kw = n.kind === 'abstract' ? 'abstract class' : n.kind;
     L.push(`${kw} "${n.name || 'Unnamed'}" {`);
     for (const m of n.attributes) {
+      if (n.kind === 'enum') {
+        L.push(`  ${m.name || 'unnamed'}${m.type ? ' = ' + m.type : ''}`);
+        continue;
+      }
       const mods = m.mods.length ? ' ' + m.mods.join(' ') : '';
       const type = m.type ? ` : ${m.type}` : '';
       L.push(`  ${m.vis}${mods} ${m.name || 'unnamed'}${type}`);

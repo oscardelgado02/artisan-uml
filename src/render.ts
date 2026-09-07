@@ -28,6 +28,8 @@ export function svgEl(tag: string): SVGElement {
 
 export function applyCam(): void {
   viewport.style.transform = `translate(${state.cam.x}px, ${state.cam.y}px) scale(${state.cam.z})`;
+  wrap.style.backgroundPosition = `${state.cam.x}px ${state.cam.y}px`;
+  wrap.style.backgroundSize = `${26 * state.cam.z}px ${26 * state.cam.z}px`;
   zoomLabel.textContent = Math.round(state.cam.z * 100) + '%';
 }
 
@@ -100,8 +102,14 @@ function memberRow(n: UmlNode, m: Member, key: MemberSection): HTMLDivElement {
   row.className = 'member';
   row.dataset.mid = m.id;
   const isEnum = n.kind === 'enum';
-  const mods = !isEnum && m.mods.length ? `<span class="m-mods">${esc(m.mods.join(' '))} </span>` : '';
-  const vis = !isEnum && m.vis ? `<span class="m-vis">${esc(m.vis)}</span>` : '';
+  if (isEnum) {
+    const name = m.name ? esc(m.name) : '<span class="unnamed">(unnamed)</span>';
+    const val = m.type ? `<span class="m-type"> = ${esc(m.type)}</span>` : '';
+    row.innerHTML = `<span class="m-name">${name}</span>${val}`;
+    return row;
+  }
+  const mods = m.mods.length ? `<span class="m-mods">${esc(m.mods.join(' '))} </span>` : '';
+  const vis = m.vis ? `<span class="m-vis">${esc(m.vis)}</span>` : '';
   const params = key === 'methods' ? `<span class="m-params">(${esc(m.params ?? '')})</span>` : '';
   const name = m.name ? esc(m.name) : '<span class="unnamed">(unnamed)</span>';
   const type = m.type ? `<span class="m-type">: ${esc(m.type)}</span>` : '';
@@ -144,8 +152,15 @@ export function renderNodes(): void {
       }</div>`;
     el.appendChild(head);
 
-    el.appendChild(nodeSection(n, 'attributes', 'attribute'));
-    el.appendChild(nodeSection(n, 'methods', 'method'));
+    if (n.kind === 'enum') {
+      el.appendChild(nodeSection(n, 'attributes', 'value'));
+    } else if (n.kind === 'interface') {
+      el.appendChild(nodeSection(n, 'attributes', 'property'));
+      el.appendChild(nodeSection(n, 'methods', 'method'));
+    } else {
+      el.appendChild(nodeSection(n, 'attributes', 'attribute'));
+      el.appendChild(nodeSection(n, 'methods', 'method'));
+    }
     nodesLayer.appendChild(el);
     n._w = el.offsetWidth;
     n._h = el.offsetHeight;
@@ -165,6 +180,16 @@ export function anchor(a: UmlNode, b: UmlNode): { x: number; y: number } {
   return { x: cx + dx * s, y: cy + dy * s };
 }
 
+export function onBorder(n: UmlNode, px: number, py: number): boolean {
+  const w = n._w ?? 220;
+  const h = n._h ?? 100;
+  const lx = px - n.x;
+  const ly = py - n.y;
+  if (lx < -4 || ly < -4 || lx > w + 4 || ly > h + 4) return false;
+  const m = 8;
+  return lx < m || lx > w - m || ly < m || ly > h - m;
+}
+
 function edgeLabelText(x: number, y: number, txt: string, cls: string): SVGTextElement {
   const t = svgEl('text') as SVGTextElement;
   t.setAttribute('x', String(x));
@@ -182,45 +207,73 @@ export function renderEdges(): void {
     const b = nodeById(e.to);
     if (!a || !b) continue;
     const def = EDGE_KINDS[e.kind] ?? EDGE_KINDS.association;
-    const p1 = anchor(a, b);
-    const p2 = anchor(b, a);
 
     const g = svgEl('g') as SVGGElement;
     g.classList.add('edge-g');
     g.dataset.id = e.id;
     if (selEdge(e.id)) g.classList.add('selected');
 
-    const hit = svgEl('line') as SVGLineElement;
-    hit.setAttribute('x1', String(p1.x));
-    hit.setAttribute('y1', String(p1.y));
-    hit.setAttribute('x2', String(p2.x));
-    hit.setAttribute('y2', String(p2.y));
-    hit.setAttribute('class', 'edge-hit');
-    g.appendChild(hit);
+    const markerStart = def.start ? ` url(#${def.start})` : '';
+    const markerEnd = ` url(#${def.end})`;
 
-    const line = svgEl('line') as SVGLineElement;
-    line.setAttribute('x1', String(p1.x));
-    line.setAttribute('y1', String(p1.y));
-    line.setAttribute('x2', String(p2.x));
-    line.setAttribute('y2', String(p2.y));
-    line.setAttribute('class', 'edge-line' + (def.dashed ? ' dashed' : ''));
-    if (def.start) line.setAttribute('marker-start', `url(#${def.start})`);
-    line.setAttribute('marker-end', `url(#${def.end})`);
-    g.appendChild(line);
+    let labelX: number;
+    let labelY: number;
 
-    const mx = (p1.x + p2.x) / 2;
-    const my = (p1.y + p2.y) / 2;
-    if (e.label) g.appendChild(edgeLabelText(mx, my - 6, e.label, 'edge-label'));
+    if (e.from === e.to) {
+      // self-relation loop on the right side of the node
+      const w = a._w ?? 220;
+      const h = a._h ?? 100;
+      const y1 = a.y + h * 0.25;
+      const y2 = a.y + h * 0.6;
+      const x = a.x + w;
+      const d = `M ${x} ${y1} C ${x + 55} ${y1}, ${x + 55} ${y2}, ${x} ${y2}`;
+      const hit = svgEl('path') as SVGPathElement;
+      hit.setAttribute('d', d);
+      hit.setAttribute('class', 'edge-hit');
+      g.appendChild(hit);
+      const line = svgEl('path') as SVGPathElement;
+      line.setAttribute('d', d);
+      line.setAttribute('class', 'edge-line' + (def.dashed ? ' dashed' : ''));
+      line.setAttribute('marker-start', markerStart);
+      line.setAttribute('marker-end', markerEnd);
+      g.appendChild(line);
+      labelX = x + 66;
+      labelY = (y1 + y2) / 2;
+    } else {
+      const p1 = anchor(a, b);
+      const p2 = anchor(b, a);
+      const hit = svgEl('line') as SVGLineElement;
+      hit.setAttribute('x1', String(p1.x));
+      hit.setAttribute('y1', String(p1.y));
+      hit.setAttribute('x2', String(p2.x));
+      hit.setAttribute('y2', String(p2.y));
+      hit.setAttribute('class', 'edge-hit');
+      g.appendChild(hit);
 
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const ux = dx / len;
-    const uy = dy / len;
-    if (e.fromMult)
-      g.appendChild(edgeLabelText(p1.x + ux * 20, p1.y + uy * 20 - 4, e.fromMult, 'edge-mult'));
-    if (e.toMult)
-      g.appendChild(edgeLabelText(p2.x - ux * 20, p2.y - uy * 20 - 4, e.toMult, 'edge-mult'));
+      const line = svgEl('line') as SVGLineElement;
+      line.setAttribute('x1', String(p1.x));
+      line.setAttribute('y1', String(p1.y));
+      line.setAttribute('x2', String(p2.x));
+      line.setAttribute('y2', String(p2.y));
+      line.setAttribute('class', 'edge-line' + (def.dashed ? ' dashed' : ''));
+      line.setAttribute('marker-start', markerStart);
+      line.setAttribute('marker-end', markerEnd);
+      g.appendChild(line);
+
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+      if (e.fromMult)
+        g.appendChild(edgeLabelText(p1.x + ux * 20, p1.y + uy * 20 - 4, e.fromMult, 'edge-mult'));
+      if (e.toMult)
+        g.appendChild(edgeLabelText(p2.x - ux * 20, p2.y - uy * 20 - 4, e.toMult, 'edge-mult'));
+      labelX = (p1.x + p2.x) / 2;
+      labelY = (p1.y + p2.y) / 2 - 6;
+    }
+
+    if (e.label) g.appendChild(edgeLabelText(labelX, labelY, e.label, 'edge-label'));
 
     edgePaths.appendChild(g);
   }
