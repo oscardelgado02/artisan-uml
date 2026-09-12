@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wise UML</title>
+  <title>Artisan — class diagram editor</title>
   <script>
     (function () {
       var t = localStorage.getItem("wise-uml-theme");
@@ -21,7 +21,7 @@
 </head>
 <body>
   <header id="toolbar">
-    <div class="brand">Wise UML</div>
+    <div class="brand">Artisan</div>
 
     <div class="tb-group">
       <button id="btn-add-node" class="btn" title="Add a node (also: double-click canvas or right-click canvas)">
@@ -29,10 +29,26 @@
         Node
       </button>
 
+      <button id="btn-tidy" class="btn" title="Re-run automatic layout (dagre)">Tidy</button>
+      <select id="sel-lines" class="btn" title="Edge routing style">
+        <option value="straight">Lines: straight</option>
+        <option value="ortho">Lines: rectangular</option>
+        <option value="smooth">Lines: smooth</option>
+        <option value="elliptic">Lines: curves</option>
+      </select>
       <button id="btn-colorize" class="btn toggle" title="Paint relations orange">
         <svg viewBox="0 0 16 16" width="14" height="14"><path d="M2 12.5C4 7 7 4.5 14 3.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
         Color links
       </button>
+
+      <button id="btn-notes" class="btn" title="Project notes">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path d="M3 11.5 11 3.5l1.5 1.5-8 8H3v-1.5zM10 2l1.5-1.5L15 3.5 13.5 5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Notes
+      </button>
+
+      <button id="btn-connect" class="btn" title="Connect .artisan/diagram.json so edits autosave to disk (Chrome/Edge)" style="display:none">Connect file</button>
+
+      <button id="btn-ack" class="btn ack" title="Mark AI-made diagram changes as seen" style="display:none"></button>
     </div>
 
     <div class="tb-spacer"></div>

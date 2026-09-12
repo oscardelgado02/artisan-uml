@@ -1,5 +1,5 @@
 import { state } from './model';
-import type { Camera, UmlEdge, UmlNode } from './model';
+import type { Camera, EdgeStyle, UmlEdge, UmlNode } from './model';
 import { applyCam, renderAll, syncColorize } from './render';
 
 export const LS_KEY = 'wise-uml-v1';
@@ -15,7 +15,12 @@ export interface SerializedDiagram {
   edges: UmlEdge[];
   colorize?: boolean;
   cam?: Camera | null;
+  projectNotes?: string;
+  edgeStyle?: string;
 }
+
+export const serverRef: { current: boolean } = { current: false };
+export const fileRef: { handle: any } = { handle: null };
 
 export function serialize(): string {
   const diagram: SerializedDiagram = {
@@ -24,6 +29,8 @@ export function serialize(): string {
     edges: state.edges.map(e => ({ ...e })),
     colorize: state.colorize,
     cam: state.cam,
+    projectNotes: state.projectNotes,
+    edgeStyle: state.edgeStyle,
   };
   return JSON.stringify(diagram);
 }
@@ -32,8 +39,38 @@ export function save(): void {
   try {
     localStorage.setItem(LS_KEY, serialize());
   } catch {
-    /* storage unavailable */
+    /* storage unavailable (file:// may throw) */
   }
+  if (serverRef.current) putToServer();
+  if (fileRef.handle) saveFileThrottled();
+}
+
+let putTimer: ReturnType<typeof setTimeout> | null = null;
+
+function putToServer(): void {
+  if (putTimer) return;
+  putTimer = setTimeout(() => {
+    putTimer = null;
+    fetch('/api/diagram', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: serialize() }).catch(
+      () => undefined
+    );
+  }, 500);
+}
+
+let fileTimer: ReturnType<typeof setTimeout> | null = null;
+
+function saveFileThrottled(): void {
+  if (fileTimer) return;
+  fileTimer = setTimeout(() => {
+    fileTimer = null;
+    fileRef.handle
+      .createWritable()
+      .then(async (w: any) => {
+        await w.write(serialize());
+        await w.close();
+      })
+      .catch(() => undefined);
+  }, 500);
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -51,6 +88,9 @@ export function loadInto(data: SerializedDiagram): void {
   state.nodes = Array.isArray(data.nodes) ? data.nodes : [];
   state.edges = Array.isArray(data.edges) ? data.edges : [];
   state.colorize = !!data.colorize;
+  state.projectNotes = typeof data.projectNotes === 'string' ? data.projectNotes : '';
+  const es = data.edgeStyle;
+  state.edgeStyle = typeof es === 'string' && (['ortho', 'smooth', 'straight', 'elliptic'] as string[]).includes(es) ? (es as EdgeStyle) : 'straight';
   state.cam =
     data.cam && typeof data.cam.z === 'number'
       ? { ...data.cam }

@@ -149,6 +149,7 @@ export function openMemberEditor(nodeId: string, mid: string): void {
         mod => `<button class="chip ${m.mods.includes(mod) ? 'is-active' : ''}" data-mod="${mod}">${mod}</button>`
       ).join('')}
     </div>`}
+    <textarea class="f-wide f-note" rows="2" placeholder="note (optional)">${esc(m.note ?? '')}</textarea>
     <div class="actions">
       <button class="p-btn p-del">Delete member</button>
       <button class="p-btn p-done">Done</button>
@@ -158,6 +159,7 @@ export function openMemberEditor(nodeId: string, mid: string): void {
   const name = el.querySelector<HTMLInputElement>('.f-name');
   const type = el.querySelector<HTMLInputElement>('.f-type');
   const params = el.querySelector<HTMLInputElement>('.f-params');
+  const note = el.querySelector<HTMLTextAreaElement>('.f-note');
 
   const bind = (input: HTMLInputElement, fn: (v: string) => void): void => {
     input.addEventListener('input', () => {
@@ -172,6 +174,13 @@ export function openMemberEditor(nodeId: string, mid: string): void {
   if (name) bind(name, v => (m.name = v.trim()));
   if (type) bind(type, v => (m.type = v.trim()));
   if (params) bind(params, v => (m.params = v.trim()));
+  if (note) {
+    note.addEventListener('input', () => {
+      consumePendingPre();
+      m.note = note.value.trim() || undefined;
+    });
+    note.addEventListener('keydown', e => e.stopPropagation());
+  }
   if (vis) {
     vis.addEventListener('change', () => {
       consumePendingPre();
@@ -245,6 +254,7 @@ export function openEdgeEditor(eid: string): void {
       <input class="f-type f-tomult" placeholder="to mult." value="${esc(e.toMult)}" />
     </div>
     <input class="f-wide f-label" placeholder="label, e.g. owns / uses" value="${esc(e.label)}" />
+    <input class="f-wide f-enote" placeholder="note (optional)" value="${esc(e.note ?? '')}" />
     <div class="actions">
       <button class="p-btn p-del">Delete</button>
       <button class="p-btn p-rev">Reverse</button>
@@ -266,6 +276,7 @@ export function openEdgeEditor(eid: string): void {
     [fromMult, v => (e.fromMult = v)],
     [toMult, v => (e.toMult = v)],
     [label, v => (e.label = v)],
+    [el.querySelector<HTMLInputElement>('.f-enote'), v => (e.note = v.trim() || undefined)],
   ];
   for (const [input, fn] of textFields) {
     if (!input) continue;
@@ -339,4 +350,87 @@ export function startRename(nodeId: string): void {
   input.addEventListener('blur', () => commit(true));
   input.addEventListener('mousedown', e => e.stopPropagation());
   input.addEventListener('dblclick', e => e.stopPropagation());
+}
+
+export function openNodeNoteEditor(nodeId: string): void {
+  closePopovers();
+  const n = nodeById(nodeId);
+  if (!n) return;
+  const nodeEl = nodesLayer.querySelector<HTMLElement>(`.node[data-id="${nodeId}"]`);
+  const rect = nodeEl?.getBoundingClientRect();
+  pendingPre.current = serialize();
+
+  const el = document.createElement('div');
+  el.className = 'popover';
+  el.innerHTML = `
+    <div class="p-label">Note on ${esc(n.name || '(unnamed)')}</div>
+    <textarea class="f-wide f-note" rows="4" placeholder="Notes for this class (optional).">${esc(n.note ?? '')}</textarea>
+    <div class="actions">
+      <button class="p-btn p-del">Clear</button>
+      <button class="p-btn p-done">Done</button>
+    </div>`;
+
+  const note = el.querySelector<HTMLTextAreaElement>('.f-note');
+  if (note) {
+    note.addEventListener('input', () => {
+      consumePendingPre();
+      n.note = note.value.trim() || undefined;
+    });
+    note.addEventListener('keydown', e => e.stopPropagation());
+  }
+  el.querySelector('.p-del')?.addEventListener('click', () => {
+    consumePendingPre();
+    n.note = undefined;
+    if (note) note.value = '';
+    renderAll();
+    save();
+  });
+  el.querySelector('.p-done')?.addEventListener('click', () => closePopovers());
+
+  el.addEventListener('mousedown', e => e.stopPropagation());
+  positionPopover(el, rect ? rect.left : 100, rect ? rect.bottom + 6 : 100);
+  activePopoverRef.current = {
+    el,
+    close: () => {
+      renderAll();
+      save();
+    },
+  };
+  note?.focus();
+}
+
+export function openProjectNotes(): void {
+  closePopovers();
+  pendingPre.current = serialize();
+
+  const el = document.createElement('div');
+  el.className = 'popover project-notes';
+  el.innerHTML = `
+    <div class="p-label">Project notes</div>
+    <textarea class="f-wide f-note" rows="10" placeholder="Project-level notes.">${esc(state.projectNotes)}</textarea>
+    <div class="actions">
+      <span class="p-hint">Ctrl+Enter to close</span>
+      <button class="p-btn p-done">Done</button>
+    </div>`;
+
+  const note = el.querySelector<HTMLTextAreaElement>('.f-note');
+  note?.addEventListener('input', () => {
+    consumePendingPre();
+    state.projectNotes = note.value;
+  });
+  note?.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) closePopovers();
+  });
+  el.querySelector('.p-done')?.addEventListener('click', () => closePopovers());
+
+  el.addEventListener('mousedown', e => e.stopPropagation());
+  positionPopover(el, Math.max(16, window.innerWidth / 2 - 145), 60);
+  activePopoverRef.current = {
+    el,
+    close: () => {
+      save();
+    },
+  };
+  note?.focus();
 }

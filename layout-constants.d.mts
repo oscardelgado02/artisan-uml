@@ -1,0 +1,10 @@
+export declare const CHAR_PX: number;
+export declare const NODE_MAX_PX: number;
+export declare const NODE_MIN_PX: number;
+export declare const ROW_PAD: number;
+export declare const NOTE_GLYPH: number;
+export declare const NAME_CAP: number;
+export declare const NAME_FLOOR: number;
+export declare const PARAMS_CAP: number;
+export declare const PARAMS_FLOOR: number;
+export declare const CONTRACT_VERSION: number;

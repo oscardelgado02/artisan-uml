@@ -19,9 +19,16 @@ html {
   --vis-orange: #d97706;
   --type-cyan: #0891b2;
   --mod-purple: #7c3aed;
+  --ai-change: #f59e0b;
+  --ai-change-bg: rgba(245, 158, 11, 0.15);
+}
+
+html {
+  color-scheme: light;
 }
 
 html.dark {
+  color-scheme: dark;
   --background: #0d0d0d;
   --foreground: #ededed;
   --foreground-2: rgba(237, 237, 237, 0.85);
@@ -42,6 +49,8 @@ html.dark {
   --vis-orange: #fbbf24;
   --type-cyan: #22d3ee;
   --mod-purple: #a78bfa;
+  --ai-change: #f59e0b;
+  --ai-change-bg: rgba(245, 158, 11, 0.18);
 }
 
 * {
@@ -297,7 +306,8 @@ button {
 .node {
   position: absolute;
   min-width: 210px;
-  max-width: 340px;
+  width: max-content;
+  max-width: 640px;
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 1rem;
@@ -340,6 +350,82 @@ button {
 .node.link-target {
   border-color: var(--card-border-hover);
   box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.node.ai-change,
+.node.ai-change:hover {
+  border-color: var(--ai-change);
+  box-shadow: 0 0 0 3px var(--ai-change-bg), 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
+.member.ai-change {
+  background-color: var(--ai-change-bg);
+}
+
+.edge-g.ai-change .edge-line {
+  stroke: var(--ai-change);
+  stroke-width: 2;
+}
+
+.edge-g.ai-change .mk-stroke {
+  stroke: var(--ai-change);
+}
+
+.edge-g.ai-change .mk-fill {
+  fill: var(--ai-change);
+}
+
+.edge-g.ai-change .mk-bg {
+  stroke: var(--ai-change);
+}
+
+.note-glyph {
+  color: var(--mod-purple);
+  font-size: 11px;
+  margin-right: 6px;
+  font-style: normal;
+  flex: none;
+}
+
+.note-glyph.node-note {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  z-index: 2;
+}
+
+.btn.ack {
+  background-color: var(--ai-change);
+  border-color: var(--ai-change);
+  color: #1a1a1a;
+}
+
+.btn.ack:hover {
+  filter: brightness(1.08);
+}
+
+.popover textarea {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--foreground);
+  background: var(--secondary-bg);
+  border: 1px solid var(--secondary-border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+}
+
+.popover textarea:focus {
+  border-color: var(--primary-from);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.popover .p-hint {
+  font-size: 11px;
+  color: var(--muted-fg);
+  align-self: center;
 }
 
 .node-head {
@@ -404,8 +490,19 @@ button {
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.member > span {
+  min-width: 0;
+}
+
+/* Only the name may wrap (JS pre-wraps it with \n); vis/mods/type/params stay
+   on one line. */
+.m-name {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  max-width: 240px;
+  flex: 0 1 auto;
 }
 
 .member:hover {
@@ -432,8 +529,12 @@ button {
   margin-left: 5px;
 }
 
+/* Params may wrap (JS pre-wraps with \n at its budget); type stays locked. */
 .m-params {
   color: var(--foreground-2);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  max-width: 240px;
 }
 
 .m-mods {
@@ -509,7 +610,8 @@ button {
 .popover {
   position: fixed;
   z-index: 110;
-  width: 290px;
+  width: 440px;
+  max-width: calc(100vw - 20px);
   background: var(--card-bg);
   border: 1px solid var(--card-border-hover);
   border-radius: 12px;
@@ -546,11 +648,11 @@ button {
 }
 
 .popover .f-name {
-  flex: 1.2;
+  flex: 2;
 }
 
 .popover .f-type {
-  flex: 1;
+  flex: 1.4;
 }
 
 .popover .f-wide {

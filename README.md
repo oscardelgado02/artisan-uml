@@ -1,10 +1,12 @@
-# wise-uml
+# artisan-uml-editor
 
 A fast, keyboard-friendly UML **class diagram editor** for the web. Instead of dragging boxes
 and rows like classic diagram tools, you just **click a `+` to add attributes and methods**,
 edit everything in place, and link types with proper UML relations.
 
-Built with **Node + Vite + TypeScript + CSS** (no framework).
+Built with **Node + Vite + TypeScript + CSS** (no framework). Published as the npm package
+`artisan-uml-editor`; the [artisan-uml](https://www.npmjs.com/package/artisan-uml) CLI
+embeds the built `dist/` into the self-contained `.artisan/diagram.html` it generates.
 
 ![Tech](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/Vite-6-purple)
 
@@ -16,8 +18,18 @@ Requires [Node.js](https://nodejs.org) 18+ and [pnpm](https://pnpm.io) (or npm).
 pnpm install     # install dependencies
 pnpm dev         # start dev server with hot reload
 pnpm build       # typecheck + production build into dist/
+pnpm test        # package contract: constants + CSS rules the CLI mirrors
 pnpm preview     # serve the production build
 ```
+
+### Contract with the CLI
+
+`layout-constants.mjs` is the single source of truth for box-size math (character width,
+node cap, wrap budgets). The CLI estimates node sizes from the same numbers, and its
+`package.json` pins an `editorContract` version. If you change the constants or the diagram
+JSON shape, bump `CONTRACT_VERSION` here and the matching `editorContract` in
+`artisan-uml` — a mismatch fails loudly on `artisan scan` instead of silently corrupting
+layout. `pnpm test` checks the CSS against the constants.
 
 ## Features
 
@@ -86,20 +98,23 @@ relations in the accent color so they stand out from the class boxes.
 ## Project structure
 
 ```
-/workspace
-├── index.html          entry page (theme boot script + toolbar/canvas markup)
-├── package.json        scripts & dependencies (pnpm)
-├── pnpm-workspace.yaml build-script approvals for pnpm v11+
-├── tsconfig.json       strict TypeScript config
+editor/
+├── index.html             entry page (theme boot script + toolbar/canvas markup)
+├── layout-constants.mjs   shared box-size knobs + CONTRACT_VERSION (CLI mirrors these)
+├── layout.mjs             our own layered auto-layout engine (used by Tidy + CLI scan)
+├── package.json           published npm package: ships dist/ + layout-constants
+├── test/contract.mjs      package contract test (constants, layout, CSS rules)
+├── tsconfig.json          strict TypeScript config
 └── src/
-    ├── main.ts         event wiring, toolbar, boot
-    ├── model.ts        domain types + constants (node kinds, relations, visibility)
-    ├── render.ts       node/edge rendering, pan & zoom camera
-    ├── storage.ts      localStorage persistence + undo/redo history
-    ├── editors.ts      context menus, member/relation popovers, inline rename
-    ├── exporters.ts    JSON + PlantUML export/import
-    ├── types.ts        shared UI types
-    └── style.css       theme variables (light/dark) + all styling
+    ├── main.ts            event wiring, toolbar, boot
+    ├── model.ts           domain types + constants (node kinds, relations, visibility)
+    ├── render.ts          node/edge rendering, pan & zoom camera
+    ├── storage.ts         localStorage persistence + undo/redo history
+    ├── editors.ts         context menus, member/relation popovers, inline rename
+    ├── exporters.ts       JSON + PlantUML export/import
+    ├── tidy.ts            re-layout via our layered engine ("Tidy" button)
+    ├── types.ts           shared UI types
+    └── style.css          theme variables (light/dark) + all styling
 ```
 
 ## Data model

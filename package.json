@@ -1,15 +1,41 @@
 {
-  "name": "wise-uml",
-  "private": true,
+  "name": "artisan-uml-editor",
   "version": "1.0.0",
+  "description": "Human-first class diagram editor — click-to-add members, live UML relations, no framework. Used standalone or bundled by the artisan-uml CLI.",
   "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "layout-constants.mjs",
+    "layout-constants.d.mts",
+    "layout.mjs",
+    "layout.d.mts"
+  ],
+  "exports": {
+    "./layout-constants.mjs": "./layout-constants.mjs",
+    "./layout.mjs": "./layout.mjs",
+    "./dist/*": "./dist/*"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node test/contract.mjs"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
     "vite": "^6.0.0"
+  },
+  "keywords": [
+    "uml",
+    "class-diagram",
+    "editor",
+    "architecture",
+    "canvas",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oscardelgado02/artisan-uml-editor.git"
   }
 }

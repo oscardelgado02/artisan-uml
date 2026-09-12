@@ -23,18 +23,22 @@ function toPlantUML(): string {
     for (const m of n.attributes) {
       if (n.kind === 'enum') {
         L.push(`  ${m.name || 'unnamed'}${m.type ? ' = ' + m.type : ''}`);
+        if (m.note) L.push(`  .. note: ${m.note}`);
         continue;
       }
       const mods = m.mods.length ? ' ' + m.mods.join(' ') : '';
       const type = m.type ? ` : ${m.type}` : '';
       L.push(`  ${m.vis}${mods} ${m.name || 'unnamed'}${type}`);
+      if (m.note) L.push(`  .. note: ${m.note}`);
     }
     for (const m of n.methods) {
       const mods = m.mods.length ? ' ' + m.mods.join(' ') : '';
       const type = m.type ? ` : ${m.type}` : '';
       L.push(`  ${m.vis}${mods} ${m.name || 'unnamed'}(${m.params ?? ''})${type}`);
+      if (m.note) L.push(`  .. note: ${m.note}`);
     }
     L.push('}');
+    if (n.note) L.push(`note on ${n.name || 'Unnamed'}: ${n.note}`);
     L.push('');
   }
   for (const e of state.edges) {
@@ -45,6 +49,12 @@ function toPlantUML(): string {
     const tm = e.toMult ? ` "${e.toMult}"` : '';
     const lbl = e.label ? ` : ${e.label}` : '';
     L.push(`${a}${fm} ${arrow}${tm} ${b}${lbl}`);
+  }
+  if (state.projectNotes.trim()) {
+    L.push('');
+    L.push('note as projectNotes');
+    for (const line of state.projectNotes.trim().split('\n')) L.push(`  ${line}`);
+    L.push('end note');
   }
   L.push('');
   L.push('@enduml');

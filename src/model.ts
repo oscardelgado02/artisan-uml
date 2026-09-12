@@ -72,6 +72,7 @@ export interface Member {
   type: string;
   mods: string[];
   params: string | null;
+  note?: string;
 }
 
 export interface UmlNode {
@@ -82,6 +83,7 @@ export interface UmlNode {
   y: number;
   attributes: Member[];
   methods: Member[];
+  note?: string;
   _w?: number;
   _h?: number;
 }
@@ -94,6 +96,15 @@ export interface UmlEdge {
   label: string;
   fromMult: string;
   toMult: string;
+  note?: string;
+}
+
+export interface PendingRef {
+  type: 'node' | 'edge' | 'member';
+  id: string;
+  nodeId?: string;
+  change: 'added' | 'modified' | 'removed';
+  summary?: string;
 }
 
 export interface Camera {
@@ -107,6 +118,8 @@ export interface Selection {
   id: string;
 }
 
+export type EdgeStyle = 'straight' | 'ortho' | 'smooth' | 'elliptic';
+
 export interface AppState {
   seq: number;
   nodes: UmlNode[];
@@ -117,6 +130,9 @@ export interface AppState {
   selected: Selection | null;
   colorize: boolean;
   cam: Camera;
+  projectNotes: string;
+  aiPending: PendingRef[];
+  edgeStyle: EdgeStyle;
 }
 
 export const state: AppState = {
@@ -129,7 +145,13 @@ export const state: AppState = {
   selected: null,
   colorize: false,
   cam: { x: 0, y: 0, z: 1 },
+  projectNotes: '',
+  aiPending: [],
+  edgeStyle: 'straight',
 };
+
+export const isPending = (type: PendingRef['type'], id: string): boolean =>
+  state.aiPending.some(r => r.type === type && r.id === id);
 
 export const esc = (s: unknown): string =>
   String(s ?? '').replace(
