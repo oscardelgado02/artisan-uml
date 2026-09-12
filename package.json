@@ -1,7 +1,7 @@
 {
-  "name": "artisan-uml-editor",
+  "name": "artisan-uml",
   "version": "1.0.0",
-  "description": "Human-first class diagram editor — click-to-add members, live UML relations, no framework. Used standalone or bundled by the artisan-uml CLI.",
+  "description": "Artisan UML — A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
   "type": "module",
   "license": "MIT",
   "files": [
@@ -36,6 +36,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oscardelgado02/artisan-uml-editor.git"
+      "url": "git+https://github.com/oscardelgado02/artisan-uml.git"
   }
 }

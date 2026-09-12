@@ -34,7 +34,7 @@ for (let i = 0; i < nodes.length; i++)
 console.log('  ok - layeredLayout: parent above children, no overlaps');
 
 const pkg = JSON.parse(fs.readFileSync(new URL('package.json', here), 'utf8'));
-assert.equal(pkg.name, 'artisan-uml-editor', 'package name');
+assert.equal(pkg.name, 'artisan-uml', 'package name');
 assert.ok(pkg.files.includes('dist') && pkg.files.includes('layout-constants.mjs'), 'npm files ship dist + constants');
 assert.ok(pkg.exports['./layout-constants.mjs'], 'exports expose layout-constants');
 console.log('  ok - package.json ships dist + layout-constants');
