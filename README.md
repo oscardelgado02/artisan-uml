@@ -84,7 +84,9 @@ relations in the accent color so they stand out from the class boxes.
 
 ### Editor niceties
 
-- **Light / dark theme** (follows your system preference, toggle in the toolbar)
+- **Themes** — three palettes, each with light/dark mode: **Default** (warm brass),
+  **Developer** (violet neon), **Artisan** (parchment & ink, serif class names).
+  Pick one in the toolbar; light/dark follows your system preference, toggle next to it.
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Shift+Z`
 - **Autosave** to `localStorage`
 - **Pan** by dragging the canvas (or middle mouse), **zoom** with `Ctrl+scroll`
@@ -158,9 +160,10 @@ split (`html` vs `html.dark`) used by the cards the design is based on:
 | Token | Used for |
 | --- | --- |
 | `--card-bg`, `--card-border`, `--card-shadow` | class box cards |
-| `--primary-from` / `--primary-to`, `--accent-glow` | accent, selected-box animated border, relation highlight |
+| `--primary-from` / `--primary-to`, `--accent-glow` | accent, selected-box animated border |
 | `--vis-orange`, `--type-cyan`, `--mod-purple` | member syntax coloring |
-| `--edge-default` / `--edge-c` | relation strokes (default vs "Color links") |
+| `--edge-default` / `--edge-colorize` | relation strokes (default vs "Color links") |
+| `--edge-selected` | selected-relation highlight |
 
 ## Keyboard shortcuts
 

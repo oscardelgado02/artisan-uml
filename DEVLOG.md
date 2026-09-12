@@ -1,6 +1,7 @@
 # Devlog
 
 ## 12.09.2026
+- Theme selector: three palettes (Default warm brass, Developer violet neon, Artisan parchment & ink with serif class names), each with light/dark. Palette pick persisted alongside the dark-mode toggle; members stay monospace in every theme so layout measurements hold.
 - Full ownership of the layout engine: wrote our own layered layout (`layout.mjs` in the editor package) — longest-path ranking, barycenter ordering, band placement. Deleted both vendored dagre copies; editor bundle 95 → 48 kB.
 - Contract guard: shared box-size knobs live in `layout-constants.mjs` with a `CONTRACT_VERSION` checked by tests.
 - Editor contract test suite (`test/contract.mjs`).
