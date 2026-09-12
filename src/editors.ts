@@ -326,6 +326,10 @@ export function startRename(nodeId: string): void {
   if (!nameEl) return;
   const input = document.createElement('input');
   input.value = n.name;
+  // Freeze width to the name's current rendered size so the box never
+  // grows/shrinks while typing; renderAll() restores layout on commit.
+  const w = nameEl.getBoundingClientRect().width;
+  input.style.width = `${Math.max(w, 80)}px`;
   nameEl.textContent = '';
   nameEl.appendChild(input);
   input.focus();

@@ -494,9 +494,15 @@ button {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
+  padding: 1.5px;
   background: linear-gradient(120deg, var(--primary-from), var(--primary-to), var(--accent-glow), var(--primary-from));
   background-size: 300% 300%;
   animation: borderFlow 8s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
   z-index: 0;
 }
 
