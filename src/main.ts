@@ -771,6 +771,16 @@ fileImport.addEventListener('change', () => {
   applyThemeIcon();
 });
 
+const selPalette = document.getElementById('sel-palette') as HTMLSelectElement;
+selPalette.value = document.documentElement.getAttribute('data-theme') ?? 'default';
+selPalette.addEventListener('change', () => {
+  const p = selPalette.value;
+  if (p === 'default') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', p);
+  localStorage.setItem('wise-uml-palette', p);
+  renderAll();
+});
+
 btnClear.addEventListener('click', () => {
   if (!state.nodes.length && !state.edges.length) {
     toast('Diagram is already empty');
