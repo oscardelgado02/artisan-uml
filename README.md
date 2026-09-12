@@ -160,9 +160,10 @@ split (`html` vs `html.dark`) used by the cards the design is based on:
 | Token | Used for |
 | --- | --- |
 | `--card-bg`, `--card-border`, `--card-shadow` | class box cards |
-| `--primary-from` / `--primary-to`, `--accent-glow` | accent, selected-box animated border, relation highlight |
+| `--primary-from` / `--primary-to`, `--accent-glow` | accent, selected-box animated border |
 | `--vis-orange`, `--type-cyan`, `--mod-purple` | member syntax coloring |
-| `--edge-default` / `--edge-c` | relation strokes (default vs "Color links") |
+| `--edge-default` / `--edge-colorize` | relation strokes (default vs "Color links") |
+| `--edge-selected` | selected-relation highlight |
 
 ## Keyboard shortcuts
 

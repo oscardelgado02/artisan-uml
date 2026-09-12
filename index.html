@@ -11,7 +11,7 @@
         document.documentElement.classList.add("dark");
       }
       var p = localStorage.getItem("wise-uml-palette");
-      if (p === "developer" || p === "artisan") {
+      if (p === "developer" || p === "artisan" || p === "navy") {
         document.documentElement.setAttribute("data-theme", p);
       }
     })();
@@ -76,6 +76,7 @@
         <option value="default">Theme: Default</option>
         <option value="developer">Theme: Developer</option>
         <option value="artisan">Theme: Artisan</option>
+        <option value="navy">Theme: Navy</option>
       </select>
       <button id="btn-theme" class="btn icon" title="Toggle light / dark theme">
         <svg id="icon-theme" viewBox="0 0 16 16" width="15" height="15"></svg>
