@@ -1,12 +1,14 @@
 # artisan-uml-editor
 
-A fast, keyboard-friendly UML **class diagram editor** for the web. Instead of dragging boxes
-and rows like classic diagram tools, you just **click a `+` to add attributes and methods**,
-edit everything in place, and link types with proper UML relations.
+A fast, fluid UML **class diagram editor** for the web. Classic diagram tools are
+**drag-and-drop**: you drag boxes around, resize them, and wrestle text inside rectangles.
+Here the canvas is not a drawing surface — it is a live document. You **click a `+` to add
+attributes and methods**, edit everything **in place** (inline, like a text field), and link
+types with proper UML relations. Layout stays tidy automatically; you spend your time
+modeling, not moving rectangles.
 
 Built with **Node + Vite + TypeScript + CSS** (no framework). Published as the npm package
-`artisan-uml-editor`; the [artisan-uml](https://www.npmjs.com/package/artisan-uml) CLI
-embeds the built `dist/` into the self-contained `.artisan/diagram.html` it generates.
+`artisan-uml-editor`.
 
 ![Tech](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/Vite-6-purple)
 
