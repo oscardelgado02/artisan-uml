@@ -84,6 +84,7 @@ interface DragState {
   ox: number;
   oy: number;
   moved: boolean;
+  wasSelected: boolean;
 }
 
 interface PanState {
@@ -100,6 +101,9 @@ let downPort: { id: string; point: { x: number; y: number }; sx: number; sy: num
 let lastMouse = { x: 0, y: 0 };
 let cursorNode: HTMLElement | null = null;
 let suppressClick = false;
+// True when the node under the last mouseup was already selected before that
+// click — only then may a click on its name/members open an editor.
+let nodeWasSelectedAtDown = false;
 
 function suppressNextClick(): void {
   suppressClick = true;
@@ -433,7 +437,13 @@ wrap.addEventListener('mousedown', (e: MouseEvent) => {
     if (!interactive && onBorder(n, p.x, p.y)) {
       downPort = { id, point: nearestBorderPoint(n, p.x, p.y), sx: e.clientX, sy: e.clientY };
     } else {
-      drag = { id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false };
+      const wasSelected = selNode(id);
+      drag = { id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false, wasSelected };
+      nodeWasSelectedAtDown = wasSelected;
+      if (!wasSelected) {
+        state.selected = { type: 'node', id };
+        updateSelectionStyles();
+      }
     }
   } else {
     pan = { sx: e.clientX, sy: e.clientY, cx: state.cam.x, cy: state.cam.y };
@@ -534,9 +544,14 @@ document.addEventListener('mouseup', (e: MouseEvent) => {
   }
   if (!drag) return;
   const wasDrag = drag.moved;
+  const wasSelected = drag.wasSelected;
   const id = drag.id;
   drag = null;
   if (wasDrag) {
+    if (!wasSelected) {
+      state.selected = null;
+      updateSelectionStyles();
+    }
     saveThrottled();
     return;
   }
@@ -579,15 +594,23 @@ nodesLayer.addEventListener('click', (e: MouseEvent) => {
     return;
   }
   if (state.linkFrom) return;
+  const nodeEl = (e.target as Element).closest('.node');
+  if (!nodeEl) return;
+  const id = nodeEl.getAttribute('data-id') ?? '';
+  // Body of an unselected class only selects it — edit requires the class to
+  // have been selected before this click. Add buttons stay always active.
+  if (!nodeWasSelectedAtDown) {
+    nodeWasSelectedAtDown = false;
+    return;
+  }
+  nodeWasSelectedAtDown = false;
   const nameEl = (e.target as Element).closest('.node-name');
   if (nameEl) {
-    const id = nameEl.closest('.node')?.getAttribute('data-id') ?? '';
     startRename(id);
     return;
   }
   const memberEl = (e.target as Element).closest('.member');
   if (memberEl) {
-    const id = memberEl.closest('.node')?.getAttribute('data-id') ?? '';
     openMemberEditor(id, memberEl.getAttribute('data-mid') ?? '');
   }
 });

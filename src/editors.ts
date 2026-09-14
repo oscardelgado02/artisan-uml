@@ -326,10 +326,9 @@ export function startRename(nodeId: string): void {
   if (!nameEl) return;
   const input = document.createElement('input');
   input.value = n.name;
-  // Freeze width to the name's current rendered size so the box never
-  // grows/shrinks while typing; renderAll() restores layout on commit.
-  const w = nameEl.getBoundingClientRect().width;
-  input.style.width = `${Math.max(w, 80)}px`;
+  // Freeze width to the name's current layout size (offsetWidth ignores the
+  // camera zoom, so the box never grows/shrinks while typing at any zoom).
+  input.style.width = `${Math.max(nameEl.offsetWidth, 80)}px`;
   nameEl.textContent = '';
   nameEl.appendChild(input);
   input.focus();

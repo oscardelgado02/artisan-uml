@@ -1,5 +1,12 @@
 # Devlog
 
+## 14.09.2026
+- Selected relations highlight in a theme-matching cyan/gold instead of the border accent.
+- "Color links" rebuilt: lines and arrows share one per-palette token (blue family) — arrows no longer go orange, lines no longer clone the class-border color.
+- Selection ring: animated gradient is now masked to the border only, so it no longer floods the whole class box.
+- Rename input: width frozen to the name's layout size (zoom-immune, `offsetWidth`) — box no longer grows while typing at any zoom.
+- New interaction model: clicking a class body selects it (drag just moves, ring shows during drag and reverts if it wasn't selected). Clicking name/attributes/methods edits them — but only on an already-selected class. Add-attribute/add-method buttons always work.
+
 ## 12.09.2026
 - Theme selector: three palettes (Default warm brass, Developer violet neon, Artisan parchment & ink with serif class names), each with light/dark. Palette pick persisted alongside the dark-mode toggle; members stay monospace in every theme so layout measurements hold.
 - Full ownership of the layout engine: wrote our own layered layout (`layout.mjs` in the editor package) — longest-path ranking, barycenter ordering, band placement. Deleted both vendored dagre copies; editor bundle 95 → 48 kB.
