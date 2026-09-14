@@ -1,4 +1,10 @@
-# Artisan UML
+<div align="center">
+  <img src="assets/wordmark.svg" alt="Artisan UML" width="300" />
+</div>
+
+<div align="center">
+  <img src="assets/editor.png" alt="The Artisan UML editor: class boxes with inline editing, UML relations and automatic layout" width="960" />
+</div>
 
 A fast, fluid UML **class diagram editor** for the web. Classic diagram tools are
 **drag-and-drop**: you drag boxes around, resize them, and wrestle text inside rectangles.
@@ -80,7 +86,7 @@ Click any relation to edit its **type, label and multiplicities** (`1`, `0..*`, 
 reverse it, or delete it. Toggle **Color links** in the toolbar to paint all
 relations in the accent color so they stand out from the class boxes.
 
-### Editor niceties
+### Editor features
 
 - **Themes** — four palettes, each with light/dark mode: **Default** (warm brass),
   **Developer** (violet neon), **Artisan** (parchment & ink, serif class names),
