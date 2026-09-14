@@ -4,7 +4,6 @@
   "description": "Artisan UML — A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
   "type": "module",
   "license": "MIT",
-  "packageManager": "pnpm@12.4.1",
   "author": "Óscar Delgado <oscardelgado02>",
   "homepage": "https://oscardelgado02.github.io/artisan-uml/",
   "bugs": {
