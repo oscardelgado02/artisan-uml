@@ -4,6 +4,7 @@
 - [Themes](themes.md)
 - [Keyboard reference](keyboard.md)
 - [Data model](data-model.md)
+- [npm package](npm-package.md)
 - [Web version app](https://oscardelgado02.github.io/artisan-uml/)
 - [GitHub repository](https://github.com/oscardelgado02/artisan-uml)
 - [Óscar Delgado](https://oscardelgado.dev)

@@ -16,14 +16,45 @@ Built with Node + Vite + TypeScript + CSS (no framework).
 - [**Keyboard reference**](keyboard.md) — every shortcut
 - [**Data model**](data-model.md) — the diagram JSON format
 
-## Run it yourself
+## Get it from npm
+
+The easiest way to run the editor. It ships as the npm package
+[`artisan-uml`](https://www.npmjs.com/package/artisan-uml), no cloning needed:
 
 ```bash
+pnpm add artisan-uml
+pnpm dlx serve node_modules/artisan-uml/dist
+```
+
+Open the printed URL and you are modeling. (npm equivalents: `npm install artisan-uml`
+and `npx serve node_modules/artisan-uml/dist`.) Inside the package you also get:
+
+- `dist/`, the production build of the editor, ready to serve as static files
+- `layout-constants.mjs`, the shared size constants the editor uses
+  (`NODE_MAX_PX`, `CHAR_PX`, wrap budgets, and friends)
+- `layout.mjs`, the `layeredLayout(nodes, edges, opts)` function that keeps
+  parents above children with no overlaps. You can reuse both in your own
+  diagramming tools:
+
+```js
+import { NODE_MAX_PX } from 'artisan-uml/layout-constants.mjs';
+import { layeredLayout } from 'artisan-uml/layout.mjs';
+```
+
+## Clone the project
+
+Prefer to run it from source? Clone the repository and install:
+
+```bash
+git clone https://github.com/oscardelgado02/artisan-uml
+cd artisan-uml
 pnpm install
 pnpm dev       # dev server with hot reload
-pnpm build     # production build into dist/
-pnpm test      # layout + CSS contract checks
 ```
+
+Other scripts: `pnpm build` (production build into `dist/`) and `pnpm test`
+(layout + CSS contract checks). This repo uses pnpm, but npm works too if that
+is what you have installed.
 
 ## Where your data lives
 

@@ -14,7 +14,8 @@ types with proper UML relations. Layout stays tidy automatically; you spend your
 modeling, not moving rectangles.
 
 Built with **Node + Vite + TypeScript + CSS** (no framework). Published as the npm package
-`artisan-uml`.
+`artisan-uml`: install it with `npm install artisan-uml` to serve the built editor yourself
+or reuse its layout engine in your own tools.
 
 ![Tech](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/Vite-6-purple)
 
@@ -38,9 +39,22 @@ nicer, it was worth building.
 
 ## Quick start
 
+### Option 1: the npm package (easiest)
+
+No cloning, no build step. The editor ships as the npm package `artisan-uml`:
+
+```bash
+pnpm add artisan-uml
+pnpm dlx serve node_modules/artisan-uml/dist
+```
+
+### Option 2: from source
+
 Requires [Node.js](https://nodejs.org) 18+ and [pnpm](https://pnpm.io) (or npm).
 
 ```bash
+git clone https://github.com/oscardelgado02/artisan-uml
+cd artisan-uml
 pnpm install     # install dependencies
 pnpm dev         # start dev server with hot reload
 pnpm build       # typecheck + production build into dist/
