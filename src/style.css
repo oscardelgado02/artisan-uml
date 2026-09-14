@@ -295,6 +295,10 @@ button {
   transition: background-color 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out, color 0.2s ease-out;
 }
 
+a.btn {
+  text-decoration: none;
+}
+
 .btn:hover {
   background-color: var(--secondary-hover);
   border-color: var(--card-border-hover);
