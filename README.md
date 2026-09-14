@@ -1,4 +1,10 @@
-# Artisan UML
+<div align="center">
+  <img src="assets/wordmark.svg" alt="Artisan UML" width="300" />
+</div>
+
+<div align="center">
+  <img src="assets/editor.png" alt="The Artisan UML editor: class boxes with inline editing, UML relations and automatic layout" width="960" />
+</div>
 
 A fast, fluid UML **class diagram editor** for the web. Classic diagram tools are
 **drag-and-drop**: you drag boxes around, resize them, and wrestle text inside rectangles.
@@ -20,18 +26,16 @@ Requires [Node.js](https://nodejs.org) 18+ and [pnpm](https://pnpm.io) (or npm).
 pnpm install     # install dependencies
 pnpm dev         # start dev server with hot reload
 pnpm build       # typecheck + production build into dist/
-pnpm test        # package contract: constants + CSS rules the CLI mirrors
+pnpm test        # layout + CSS contract checks
 pnpm preview     # serve the production build
 ```
 
-### Contract with the CLI
+### Layout contract
 
-`layout-constants.mjs` is the single source of truth for box-size math (character width,
-node cap, wrap budgets). The CLI estimates node sizes from the same numbers, and its
-`package.json` pins an `editorContract` version. If you change the constants or the diagram
-JSON shape, bump `CONTRACT_VERSION` here and the matching `editorContract` in
-`artisan-uml` — a mismatch fails loudly on `artisan scan` instead of silently corrupting
-layout. `pnpm test` checks the CSS against the constants.
+`layout-constants.mjs` is the single source of truth for box-size math (character
+width, node cap, wrap budgets). `Tidy` and the auto-layout estimate node sizes from
+the same numbers. If you change the constants or the diagram JSON shape, bump
+`CONTRACT_VERSION` — `pnpm test` checks the CSS and layout against the constants.
 
 ## Features
 
@@ -82,11 +86,11 @@ Click any relation to edit its **type, label and multiplicities** (`1`, `0..*`, 
 reverse it, or delete it. Toggle **Color links** in the toolbar to paint all
 relations in the accent color so they stand out from the class boxes.
 
-### Editor niceties
+### Editor features
 
-- **Themes** — three palettes, each with light/dark mode: **Default** (warm brass),
-  **Developer** (violet neon), **Artisan** (parchment & ink, serif class names).
-  Pick one in the toolbar; light/dark follows your system preference, toggle next to it.
+- **Themes** — four palettes, each with light/dark mode: **Default** (warm brass),
+  **Developer** (violet neon), **Artisan** (parchment & ink, serif class names),
+  **Navy** (deep sea, gold highlights).
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Shift+Z`
 - **Autosave** to `localStorage`
 - **Pan** by dragging the canvas (or middle mouse), **zoom** with `Ctrl+scroll`
@@ -102,13 +106,13 @@ relations in the accent color so they stand out from the class boxes.
 ## Project structure
 
 ```
-editor/
 ├── index.html             entry page (theme boot script + toolbar/canvas markup)
-├── layout-constants.mjs   shared box-size knobs + CONTRACT_VERSION (CLI mirrors these)
-├── layout.mjs             our own layered auto-layout engine (used by Tidy + CLI scan)
+├── layout-constants.mjs   shared box-size knobs + CONTRACT_VERSION
+├── layout.mjs             layered auto-layout engine (used by Tidy)
 ├── package.json           published npm package: ships dist/ + layout-constants
 ├── test/contract.mjs      package contract test (constants, layout, CSS rules)
 ├── tsconfig.json          strict TypeScript config
+├── docs/                  documentation site (docsify, hosted on GitHub Pages)
 └── src/
     ├── main.ts            event wiring, toolbar, boot
     ├── model.ts           domain types + constants (node kinds, relations, visibility)
@@ -116,7 +120,7 @@ editor/
     ├── storage.ts         localStorage persistence + undo/redo history
     ├── editors.ts         context menus, member/relation popovers, inline rename
     ├── exporters.ts       JSON + PlantUML export/import
-    ├── tidy.ts            re-layout via our layered engine ("Tidy" button)
+    ├── tidy.ts            re-layout via the layered engine ("Tidy" button)
     ├── types.ts           shared UI types
     └── style.css          theme variables (light/dark) + all styling
 ```
@@ -175,3 +179,20 @@ split (`html` vs `html.dark`) used by the cards the design is based on:
 | `Esc` | Close menus / cancel linking / deselect |
 | Double-click canvas | New class |
 | Right-click | Context menus everywhere |
+
+## Documentation
+
+Full documentation lives in [`docs/`](docs/) and is hosted on GitHub Pages:
+**[Documentation](https://oscardelgado02.github.io/artisan-uml/docs/)** — getting
+started, editing, relations, themes and keyboard reference.
+
+## Community
+
+- [Contributing](CONTRIBUTING.md) — dev setup, tests and PR expectations
+- [Code of Conduct](CODE_OF_CONDUCT.md) — Contributor Covenant
+- [Security](SECURITY.md) — how to report vulnerabilities privately
+- [Changelog](DEVLOG.md) — what changed, day by day
+
+## License
+
+[MIT](LICENSE) © Óscar Delgado
