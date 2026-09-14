@@ -17,7 +17,7 @@ Built with **Node + Vite + TypeScript + CSS** (no framework). Published as the n
 `artisan-uml`: install it with `npm install artisan-uml` to serve the built editor yourself
 or reuse its layout engine in your own tools.
 
-![Tech](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/Vite-6-purple)
+[![npm](https://img.shields.io/npm/v/artisan-uml)](https://www.npmjs.com/package/artisan-uml) ![Tech](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/Vite-6-purple)
 
 ## Why I built this
 
