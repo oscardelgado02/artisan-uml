@@ -2,9 +2,9 @@ import { defineConfig } from 'vite';
 import { cpSync, writeFileSync } from 'node:fs';
 
 // Ship the docs site (docsify shell + markdown) inside the built app.
-// Hosted at https://oscardelgado02.github.io/artisan-uml/ — subpath base required.
+// Hosted at https://artisan-uml.dev (GitHub Pages custom domain).
 export default defineConfig({
-  base: '/artisan-uml/',
+  base: '/',
   plugins: [
     {
       name: 'copy-docs',
@@ -23,6 +23,7 @@ export default defineConfig({
       closeBundle() {
         cpSync('docs', 'dist/docs', { recursive: true });
         writeFileSync('dist/.nojekyll', '');
+        writeFileSync('dist/CNAME', 'artisan-uml.dev');
       },
     },
   ],
