@@ -215,7 +215,7 @@ split (`html` vs `html.dark`) used by the cards the design is based on:
 ## Documentation
 
 Full documentation lives in [`docs/`](docs/) and is hosted on GitHub Pages:
-**[Documentation](https://artisan-uml.dev/docs/)** — getting
+**[Documentation](https://oscardelgado02.github.io/artisan-uml/docs/)** — getting
 started, editing, relations, themes and keyboard reference.
 
 ## Community
