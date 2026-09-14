@@ -32,3 +32,19 @@ pnpm test      # layout + CSS contract checks
 - **Export JSON** downloads a full-fidelity `uml-diagram.json` file.
 - **Connect file** (Chrome/Edge) autosaves edits directly to a
   `diagram.json` on your disk.
+
+## Why I built this
+
+I'm [Óscar Delgado](https://oscardelgado.dev), a software engineer. Before starting a
+project, or when adding a new feature, I like to plan the architecture first. The
+tools for that moment never felt right: most UML editors are slow and clunky, and the
+bigger and more complex your system gets, the less nice it feels to keep the diagram
+up to date.
+
+Artisan UML is my answer to that: designing software should feel as fluid as writing
+code. Click a `+`, type, link, done, and the layout takes care of itself. You spend your
+energy on the architecture, not on the tool.
+
+I released it as open source so that as many people as possible can use it, and
+hopefully it can help a lot of developers. If it makes planning your next project
+nicer, it was worth building.

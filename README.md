@@ -18,6 +18,24 @@ Built with **Node + Vite + TypeScript + CSS** (no framework). Published as the n
 
 ![Tech](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/Vite-6-purple)
 
+## Why I built this
+
+I'm [Óscar Delgado](https://oscardelgado.dev), a software engineer. Before starting a
+project, or when adding a new feature, I like to plan the architecture first. It is
+how I keep the codebase solid as it grows.
+
+The problem: the tools for that moment never felt right. Most UML editors are slow and
+clunky to work with. You drag rectangles, fight menus, and the bigger and more complex
+your system gets, the less nice it feels to keep the diagram up to date.
+
+Artisan UML is my answer to that. I wanted designing software to feel as fluid as
+writing code: click a `+`, type, link, done, and let the layout take care of itself.
+You spend your energy on the architecture, not on the tool.
+
+I released it as open source so that as many people as possible can use it, and
+hopefully it can help a lot of developers. If it makes planning your next project
+nicer, it was worth building.
+
 ## Quick start
 
 Requires [Node.js](https://nodejs.org) 18+ and [pnpm](https://pnpm.io) (or npm).
