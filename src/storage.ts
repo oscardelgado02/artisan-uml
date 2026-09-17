@@ -206,26 +206,12 @@ export function seedData(): SerializedDiagram {
       ],
       methods: [{ id: 'm7', vis: '+', name: 'Adopt', type: 'void', mods: [], params: 'pet: IPet' }],
     },
-    {
-      id: 'n6',
-      kind: 'enum',
-      name: 'Mood',
-      x: 850,
-      y: 130,
-      attributes: [
-        { id: 'a7', vis: '-', name: 'Happy', type: '', mods: [], params: null },
-        { id: 'a8', vis: '-', name: 'Sleepy', type: '', mods: [], params: null },
-        { id: 'a9', vis: '-', name: 'Zoomies', type: '', mods: [], params: null },
-      ],
-      methods: [],
-    },
   ];
   const edges: UmlEdge[] = [
     { id: 'e1', kind: 'inheritance', from: 'n3', to: 'n1', label: '', fromMult: '', toMult: '' },
     { id: 'e2', kind: 'inheritance', from: 'n4', to: 'n1', label: '', fromMult: '', toMult: '' },
     { id: 'e3', kind: 'realization', from: 'n3', to: 'n2', label: '', fromMult: '', toMult: '' },
-    { id: 'e4', kind: 'composition', from: 'n5', to: 'n3', label: 'owns', fromMult: '1', toMult: '0..*' },
-    { id: 'e5', kind: 'association', from: 'n3', to: 'n6', label: 'mood', fromMult: '', toMult: '' },
+    { id: 'e4', kind: 'composition', from: 'n5', to: 'n2', label: 'owns', fromMult: '1', toMult: '0..*' },
   ];
   return { seq: 100, nodes, edges, colorize: false, cam: null };
 }

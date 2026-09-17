@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Artisan UML (editor) — social card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  /* Editor palette: light shell, dark canvas. Mirrors artisan-uml/src/style.css */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1280px; height: 640px; overflow: hidden;
+    font-family: "Lora", Georgia, serif;
+    -webkit-font-smoothing: antialiased; }
+
+  .card {
+    position: relative; width: 1280px; height: 640px;
+    background: #faf8f5;
+    background-image:
+      radial-gradient(rgba(43, 35, 32, 0.12) 1px, transparent 1px);
+    background-size: 26px 26px;
+    padding: 30px 72px 34px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .wordmark { display: block; width: 300px; height: auto; }
+
+  .tag { margin-top: 10px; font-size: 23px; line-height: 1.45; color: rgba(43, 35, 32, 0.85); text-align: center; }
+  .tag strong { color: #b45309; font-style: italic; }
+
+  .panel { margin-top: 18px; width: 1050px; background: #191512;
+    border: 1px solid rgba(237, 232, 226, 0.16); border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(20, 14, 8, 0.22); overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 7px; padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: rgba(237, 232, 226, 0.22); }
+  .dot.r { background: #e0574f; } .dot.y { background: #d9a13b; } .dot.g { background: #5aab6e; }
+  .title { margin-left: 8px; font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+    color: rgba(237, 232, 226, 0.6); letter-spacing: 0.04em; }
+  .shot { position: relative; height: 352px;
+    background-color: #141210;
+    background-image: radial-gradient(rgba(237, 232, 226, 0.14) 1px, transparent 1.2px);
+    background-size: 26px 26px; }
+
+  /* Nodes: editor dark cards */
+  .node { position: absolute; background: #1d1a16;
+    border: 1px solid rgba(209, 154, 102, 0.35); border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); font-size: 13px; z-index: 1; }
+  .node .hd { padding: 8px 14px 7px; text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09); }
+  .node .stereo { font-size: 10.5px; color: rgba(237, 232, 226, 0.65);
+    letter-spacing: 0.04em; font-style: italic; }
+  .node .name { font-size: 15px; font-weight: 600; color: #ede8e2; }
+  .node .m { font-family: "JetBrains Mono", monospace; font-size: 12px;
+    line-height: 1.55; padding: 2px 8px; border-radius: 6px; color: #ede8e2; }
+  .node .m .v { color: #fbbf24; font-weight: 600; margin-right: 6px; }
+  .node .m .t { color: #22d3ee; margin-left: 5px; }
+
+  svg.links { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .links path { fill: none; stroke: rgba(237, 232, 226, 0.55); stroke-width: 1.5; }
+  .links path.dash { stroke-dasharray: 6 5; }
+  .links text { fill: rgba(237, 232, 226, 0.65); font-size: 11px; font-family: "JetBrains Mono", monospace; }
+
+  .url { margin-top: 16px; font-family: "JetBrains Mono", monospace; font-size: 18px; color: #b45309; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="wordmark" viewBox="0 0 300 64" role="img" aria-label="Artisan UML">
+      <defs>
+        <linearGradient id="brass" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#b45309"/>
+          <stop offset="1" stop-color="#c2711c"/>
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <text x="150" y="42" text-anchor="middle" font-family="Lora, Georgia, 'Times New Roman', serif" font-size="34" font-weight="600" fill="url(#brass)" filter="url(#glow)">Artisan UML</text>
+    </svg>
+    <p class="tag">A fast, fluid class-diagram editor for the web: <strong>click to add members</strong>, live UML relations, single file.</p>
+
+    <div class="panel">
+      <div class="bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">diagram.html — Artisan UML</span>
+      </div>
+      <div class="shot">
+        <svg class="links" viewBox="0 0 1050 352">
+          <defs>
+            <marker id="tri" viewBox="0 0 14 14" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M1,1 L13,7 L1,13 Z" fill="#1d1a16" stroke="rgba(237, 232, 226, 0.55)" stroke-width="1.5"/>
+            </marker>
+            <marker id="dia" viewBox="0 0 16 10" markerWidth="16" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M1,5 L8,1 L15,5 L8,9 Z" fill="rgba(237, 232, 226, 0.55)"/>
+            </marker>
+            <marker id="arr" viewBox="0 0 12 14" markerWidth="12" markerHeight="14" refX="10" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M1,1 L11,7 L1,13" fill="none" stroke="rgba(237, 232, 226, 0.55)" stroke-width="1.5"/>
+            </marker>
+          </defs>
+          <path d="M170,214 L265,132" marker-end="url(#tri)"/>
+          <path d="M455,196 L300,126" marker-end="url(#tri)"/>
+          <path class="dash" d="M530,196 L665,132" marker-end="url(#tri)"/>
+          <path d="M795,214 L720,134" marker-start="url(#dia)" marker-end="url(#arr)"/>
+        </svg>
+        <div class="node" style="left:170px; top:26px; width:190px;">
+          <div class="hd"><span class="stereo">«abstract»</span><br><span class="name">Animal</span></div>
+          <div class="m"><span class="v">#</span>Name<span class="t">: string</span></div>
+          <div class="m"><span class="v">+</span>Speak()<span class="t">: void</span></div>
+        </div>
+        <div class="node" style="left:580px; top:26px; width:170px;">
+          <div class="hd"><span class="stereo">«interface»</span><br><span class="name">IPet</span></div>
+          <div class="m"><span class="v">+</span>Name<span class="t">: string</span></div>
+          <div class="m"><span class="v">+</span>Play()<span class="t">: void</span></div>
+        </div>
+        <div class="node" style="left:80px; top:214px; width:180px;">
+          <div class="hd"><span class="name">Cat</span></div>
+          <div class="m"><span class="v">-</span>livesLeft<span class="t">: int</span></div>
+          <div class="m"><span class="v">+</span>Speak()<span class="t">: void</span></div>
+        </div>
+        <div class="node" style="left:360px; top:196px; width:190px;">
+          <div class="hd"><span class="name">Dog</span></div>
+          <div class="m"><span class="v">-</span>energy<span class="t">: int</span></div>
+          <div class="m"><span class="v">+</span>Bark()<span class="t">: void</span></div>
+          <div class="m"><span class="v">+</span>Speak()<span class="t">: void</span></div>
+        </div>
+        <div class="node" style="left:700px; top:214px; width:190px;">
+          <div class="hd"><span class="name">Owner</span></div>
+          <div class="m"><span class="v">-</span>pets<span class="t">: List&lt;IPet&gt;</span></div>
+          <div class="m"><span class="v">+</span>Adopt(pet)</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="url">editor.artisan-uml.dev</p>
+  </div>
+</body>
+</html>

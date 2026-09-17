@@ -1,5 +1,9 @@
 # Devlog
 
+## 17.09.2026
+- Default seed cleaned up: the `Mood` enum is gone and Owner now owns `IPet` instead of Dog — the starter diagram matches what the petshop code actually says (5 types, 4 relations).
+- Social preview card (`assets/social-card-editor.html`): 1280×640 editor window — real Artisan UML wordmark over a dark canvas with the seed diagram, relation shapes matching the editor exactly.
+
 ## 14.09.2026
 - Selected relations highlight in a theme-matching cyan/gold instead of the border accent.
 - "Color links" rebuilt: lines and arrows share one per-palette token (blue family) — arrows no longer go orange, lines no longer clone the class-border color.
