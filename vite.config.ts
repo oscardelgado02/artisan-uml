@@ -22,6 +22,7 @@ export default defineConfig({
       },
       closeBundle() {
         cpSync('docs', 'dist/docs', { recursive: true });
+        cpSync('assets/favicon.svg', 'dist/assets/favicon.svg', { recursive: true });
         writeFileSync('dist/.nojekyll', '');
       },
     },
