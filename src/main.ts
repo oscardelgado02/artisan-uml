@@ -849,6 +849,7 @@ btnConnect.addEventListener('click', async () => {
     });
     fileRef.handle = handles[0];
     btnConnect.style.display = 'none';
+    (document.getElementById('save-warn') as HTMLElement).hidden = true;
     toast('Connected — edits now autosave to your diagram.json');
   } catch {
     /* picker cancelled */
@@ -946,7 +947,11 @@ async function boot(): Promise<void> {
   selLines.value = state.edgeStyle;
   updateUndoButtons();
   syncAckButton();
-  if (!serverRef.current) btnConnect.style.display = embedded ? '' : 'none';
+  if (!serverRef.current) {
+    btnConnect.style.display = embedded ? '' : 'none';
+    const warn = document.getElementById('save-warn') as HTMLElement;
+    warn.hidden = false;
+  }
   renderAll();
   if (fresh) fitView();
   else applyCam();

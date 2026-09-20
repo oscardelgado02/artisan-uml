@@ -131,6 +131,11 @@
     <button id="zoom-fit" title="Fit view">⤢</button>
   </div>
 
+  <div id="save-warn" hidden>
+    <div class="warn-title"><span>Heads up</span><button id="save-warn-close" title="Dismiss">×</button></div>
+    This file is mainly for <strong>viewing</strong> the diagram — edits may not save. For the best experience run
+    <code>artisan serve</code> and open <code>http://localhost:4173</code> (edits autosave to diagram.json).
+  </div>
   <div id="hint"></div>
   <div id="toast"></div>
   <input type="file" id="file-import" accept=".json" hidden />

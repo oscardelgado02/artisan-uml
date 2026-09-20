@@ -952,6 +952,54 @@ a.btn {
   max-width: 70vw;
 }
 
+#save-warn {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 270px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  padding: 14px 16px;
+  z-index: 300;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--foreground-2);
+}
+
+#save-warn code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--foreground);
+}
+
+#save-warn .warn-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-family: "Lora", Georgia, serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+#save-warn button {
+  border: none;
+  background: transparent;
+  color: var(--muted-fg);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 6px;
+}
+
+#save-warn button:hover {
+  color: var(--foreground);
+}
+
 #toast {
   position: fixed;
   left: 50%;

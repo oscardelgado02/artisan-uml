@@ -1,5 +1,8 @@
 # Devlog
 
+## 20.09.2026
+- Save-warning card in the editor: a closable card at the right-center of the screen says `diagram.html` is mainly for viewing and points to `artisan serve` (localhost:4173) as the best-experience path. Styled with the editor's card tokens (theme-aware), no localStorage — it reappears on every open. Hides itself once `artisan serve` is detected or "Connect file" succeeds.
+
 ## 17.09.2026
 - Default seed cleaned up: the `Mood` enum is gone and Owner now owns `IPet` instead of Dog — the starter diagram matches what the petshop code actually says (5 types, 4 relations).
 - Social preview card (`assets/social-card-editor.html`): 1280×640 editor window — real Artisan UML wordmark over a dark canvas with the seed diagram, relation shapes matching the editor exactly.
