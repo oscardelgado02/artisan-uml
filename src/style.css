@@ -976,27 +976,10 @@ a.btn {
 }
 
 #save-warn .warn-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: 6px;
   font-family: "Lora", Georgia, serif;
   font-size: 13px;
   font-weight: 600;
-  color: var(--foreground);
-}
-
-#save-warn button {
-  border: none;
-  background: transparent;
-  color: var(--muted-fg);
-  font-size: 15px;
-  cursor: pointer;
-  padding: 0 2px;
-  border-radius: 6px;
-}
-
-#save-warn button:hover {
   color: var(--foreground);
 }
 
