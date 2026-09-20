@@ -947,10 +947,9 @@ async function boot(): Promise<void> {
   selLines.value = state.edgeStyle;
   updateUndoButtons();
   syncAckButton();
-  if (!serverRef.current) {
-    btnConnect.style.display = embedded ? '' : 'none';
-    const warn = document.getElementById('save-warn') as HTMLElement;
-    warn.hidden = false;
+  if (embedded && !serverRef.current) {
+    btnConnect.style.display = '';
+    (document.getElementById('save-warn') as HTMLElement).hidden = false;
   }
   renderAll();
   if (fresh) fitView();
