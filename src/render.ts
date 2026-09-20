@@ -6,11 +6,12 @@ import {
   esc,
   isPending,
   nodeById,
+  refKey,
   selEdge,
   selNode,
   state,
 } from './model';
-import type { Member, MemberSection, UmlNode } from './model';
+import type { Member, MemberSection, PendingRef, UmlEdge, UmlNode } from './model';
 
 const wrap = document.getElementById('canvas-wrap') as HTMLDivElement;
 const viewport = document.getElementById('viewport') as HTMLDivElement;
@@ -180,15 +181,19 @@ function memberRow(n: UmlNode, m: Member, key: MemberSection): HTMLDivElement {
     const name = m.name ? esc(wrapName(m.name, b.nameBudget)) : '<span class="unnamed">(unnamed)</span>';
     const val = m.type ? `<span class="m-type"> = ${esc(m.type)}</span>` : '';
     row.innerHTML = `<span class="m-name">${name}</span>${val}`;
-    return row;
+  } else {
+    const mods = m.mods.length ? `<span class="m-mods">${esc(m.mods.join(' '))} </span>` : '';
+    const vis = m.vis ? `<span class="m-vis">${esc(m.vis)}</span>` : '';
+    const params = key === 'methods' ? `<span class="m-params">(${esc(wrapName(m.params ?? '', b.paramsBudget))})</span>` : '';
+    const name = m.name ? esc(wrapName(m.name, b.nameBudget)) : '<span class="unnamed">(unnamed)</span>';
+    const type = m.type ? `<span class="m-type">: ${esc(m.type)}</span>` : '';
+    const note = m.note ? '<span class="note-glyph">\u270E</span>' : '';
+    row.innerHTML = `${note}${mods}${vis}${vis ? ' ' : ''}<span class="m-name">${name}</span>${params}${type}`;
   }
-  const mods = m.mods.length ? `<span class="m-mods">${esc(m.mods.join(' '))} </span>` : '';
-  const vis = m.vis ? `<span class="m-vis">${esc(m.vis)}</span>` : '';
-  const params = key === 'methods' ? `<span class="m-params">(${esc(wrapName(m.params ?? '', b.paramsBudget))})</span>` : '';
-  const name = m.name ? esc(wrapName(m.name, b.nameBudget)) : '<span class="unnamed">(unnamed)</span>';
-  const type = m.type ? `<span class="m-type">: ${esc(m.type)}</span>` : '';
-  const note = m.note ? '<span class="note-glyph">\u270E</span>' : '';
-  row.innerHTML = `${note}${mods}${vis}${vis ? ' ' : ''}<span class="m-name">${name}</span>${params}${type}`;
+  if (isPending('member', m.id)) {
+    const r = state.aiPending.find(x => x.type === 'member' && x.id === m.id);
+    if (r) { const k = refKey(r); row.appendChild(acceptChip(k)); row.appendChild(rejectChip(k)); }
+  }
   return row;
 }
 
@@ -196,6 +201,16 @@ function nodeSection(n: UmlNode, key: MemberSection, kindLabel: string): HTMLDiv
   const sec = document.createElement('div');
   sec.className = 'node-sec sec-' + key;
   for (const m of n[key]) sec.appendChild(memberRow(n, m, key));
+  const isMethod = key === 'methods';
+  for (const r of state.aiPending) {
+    // methods live in the methods section, everything else (attrs/enum values) in attributes
+    if (r.type !== 'member' || r.change !== 'removed' || !r.ghost) continue;
+    if (r.ghost.nodeId !== n.id) continue;
+    const m = r.ghost.member as Member;
+    if (!m) continue;
+    if (n.attributes.some(c => c.id === m.id) || n.methods.some(c => c.id === m.id)) continue; // re-added
+    if (isMethod === (m.params != null)) sec.appendChild(ghostMemberRow(m, isMethod, refKey(r)));
+  }
   const add = document.createElement('button');
   add.className = 'add-btn';
   add.dataset.action = 'add-' + key;
@@ -228,6 +243,8 @@ export function renderNodes(): void {
       `<div class="node-name" data-role="name">${
         n.name ? esc(n.name) : '<span class="unnamed">(unnamed)</span>'
       }</div>`;
+    const nodeRef = state.aiPending.find(r => r.type === 'node' && r.id === n.id);
+    if (nodeRef) { const k = refKey(nodeRef); head.appendChild(acceptChip(k)); head.appendChild(rejectChip(k)); }
     el.appendChild(head);
 
     if (n.kind === 'enum') {
@@ -243,6 +260,181 @@ export function renderNodes(): void {
     n._w = el.offsetWidth;
     n._h = el.offsetHeight;
   }
+  renderGhostNodes();
+}
+
+// Per-item accept/reject chips: dispatch 'artisan-accept'/'artisan-reject'
+// with the pending-ref key; main.ts does the server/localStorage work and
+// re-renders.
+function acceptChip(key: string): HTMLButtonElement {
+  const b = document.createElement('button');
+  b.className = 'ref-accept';
+  b.textContent = '\u2713';
+  b.title = 'Accept this change';
+  b.dataset.ref = key;
+  b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    window.dispatchEvent(new CustomEvent('artisan-accept', { detail: key }));
+  });
+  return b;
+}
+
+function rejectChip(key: string): HTMLButtonElement {
+  const b = document.createElement('button');
+  b.className = 'ref-reject';
+  b.textContent = '\u2715';
+  b.title = 'Reject this change (revert it)';
+  b.dataset.ref = key;
+  b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    window.dispatchEvent(new CustomEvent('artisan-reject', { detail: key }));
+  });
+  return b;
+}
+
+// User-dragged tombstone positions survive the 5s pending re-fetch (keyed by refKey).
+const ghostOverrides = new Map<string, { x: number; y: number }>();
+
+function ghostNodePos(r: PendingRef, ref: string): { x: number; y: number } {
+  const o = ghostOverrides.get(ref);
+  return o ? o : { x: Number(r.ghost?.x ?? 0), y: Number(r.ghost?.y ?? 0) };
+}
+
+// Tombstones for removed classes: rendered from the ghost snapshot stored in
+// the pending ref, until the human acks or accepts individually. Draggable;
+// still struck through.
+function renderGhostNodes(): void {
+  for (const r of state.aiPending) {
+    if (r.type !== 'node' || r.change !== 'removed' || !r.ghost) continue;
+    if (state.nodes.some(n => n.id === r.id)) continue; // re-added since
+    const key = refKey(r);
+    const g = r.ghost as unknown as UmlNode;
+    const pos = ghostNodePos(r, key);
+    const el = document.createElement('div');
+    el.className = 'node ghost kind-' + g.kind;
+    el.style.left = pos.x + 'px';
+    el.style.top = pos.y + 'px';
+    const head = document.createElement('div');
+    head.className = 'node-head';
+    head.innerHTML =
+      `<div class="node-name">${esc(g.name ?? '(unnamed)')}</div><span class="ghost-tag">removed</span>`;
+    head.appendChild(acceptChip(key)); head.appendChild(rejectChip(key));
+    el.appendChild(head);
+    for (const secKey of ['attributes', 'methods'] as MemberSection[]) {
+      const sec = document.createElement('div');
+      sec.className = 'node-sec sec-' + secKey;
+      for (const m of (g[secKey] || []) as Member[]) {
+        const row = document.createElement('div');
+        row.className = 'member ghost';
+        row.textContent = (m.vis ?? '') + ' ' + m.name + (secKey === 'methods' ? '(' + (m.params ?? '') + ')' : '') + (m.type ? ': ' + m.type : '');
+        sec.appendChild(row);
+      }
+      if ((g[secKey] || []).length) el.appendChild(sec);
+    }
+    // drag the tombstone (plain move — no node state, selection or history)
+    el.addEventListener('mousedown', ev => {
+      if ((ev.target as HTMLElement).closest('.ref-accept')) return;
+      ev.preventDefault();
+      const sx = ev.clientX;
+      const sy = ev.clientY;
+      const ox = pos.x;
+      const oy = pos.y;
+      const move = (e2: MouseEvent) => {
+        pos.x = ox + (e2.clientX - sx);
+        pos.y = oy + (e2.clientY - sy);
+        el.style.left = pos.x + 'px';
+        el.style.top = pos.y + 'px';
+      };
+      const up = () => {
+        ghostOverrides.set(key, { x: pos.x, y: pos.y });
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('mouseup', up);
+        renderEdges();
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
+    });
+    nodesLayer.appendChild(el);
+  }
+}
+
+function svgAcceptChip(key: string, x: number, y: number): SVGTextElement {
+  const t = svgEl('text') as SVGTextElement;
+  t.setAttribute('x', String(x));
+  t.setAttribute('y', String(y));
+  t.setAttribute('class', 'ref-accept');
+  t.textContent = '\u2713';
+  t.dataset.ref = key;
+  t.addEventListener('click', ev => {
+    ev.stopPropagation();
+    window.dispatchEvent(new CustomEvent('artisan-accept', { detail: key }));
+  });
+  return t;
+}
+
+function svgRejectChip(key: string, x: number, y: number): SVGTextElement {
+  const t = svgEl('text') as SVGTextElement;
+  t.setAttribute('x', String(x));
+  t.setAttribute('y', String(y));
+  t.setAttribute('class', 'ref-reject');
+  t.textContent = '\u2715';
+  t.dataset.ref = key;
+  t.addEventListener('click', ev => {
+    ev.stopPropagation();
+    window.dispatchEvent(new CustomEvent('artisan-reject', { detail: key }));
+  });
+  return t;
+}
+
+// Endpoint position for a removed-relation ghost: the surviving node, or the
+// removed-node tombstone (which the human may have dragged).
+function ghostPos(id: string): { x: number; y: number; w: number; h: number } | null {
+  const n = nodeById(id);
+  if (n) return { x: n.x, y: n.y, w: n._w ?? 220, h: n._h ?? 100 };
+  for (const r of state.aiPending) {
+    if (r.type !== 'node' || r.change !== 'removed' || !r.ghost) continue;
+    if (r.id !== id) continue;
+    const pos = ghostNodePos(r, refKey(r));
+    return { x: pos.x, y: pos.y, w: 220, h: 100 };
+  }
+  return null;
+}
+
+function renderGhostEdges(): void {
+  const labels: Array<{ el: SVGTextElement; x: number; y: number }> = [];
+  for (const r of state.aiPending) {
+    if (r.type !== 'edge' || r.change !== 'removed' || !r.ghost) continue;
+    if (state.edges.some(e => e.id === r.id)) continue; // re-added since
+    const g = r.ghost as unknown as UmlEdge & { fromName?: string; toName?: string };
+    const a = ghostPos(g.from);
+    const b = ghostPos(g.to);
+    if (!a || !b) continue; // endpoint missing entirely — nothing to anchor to
+    const gj = svgEl('g') as SVGGElement;
+    gj.classList.add('edge-g', 'ai-change', 'removed');
+    const line = svgEl('path') as SVGPathElement;
+    line.setAttribute('class', 'edge-line');
+    line.setAttribute('d', `M ${a.x + a.w / 2} ${a.y + a.h / 2} L ${b.x + b.w / 2} ${b.y + b.h / 2}`);
+    gj.appendChild(line);
+    const lbl = edgeLabelText(0, 0, `${r.ghost.kind ?? g.kind} removed`, 'edge-label');
+    gj.appendChild(lbl);
+    labels.push({ el: lbl, x: (a.x + a.w / 2 + b.x + b.w / 2) / 2, y: (a.y + a.h / 2 + b.y + b.h / 2) / 2 });
+    gj.appendChild(svgAcceptChip(refKey(r), (a.x + b.x) / 2 - 10, (a.y + b.y) / 2 - 12)); gj.appendChild(svgRejectChip(refKey(r), (a.x + b.x) / 2 + 10, (a.y + b.y) / 2 - 12));
+    edgePaths.appendChild(gj);
+  }
+  for (const l of labels) {
+    l.el.setAttribute('x', String(l.x));
+    l.el.setAttribute('y', String(l.y));
+  }
+}
+
+function ghostMemberRow(m: Member, isMethod: boolean, key: string): HTMLDivElement {
+  const row = document.createElement('div');
+  row.className = 'member ghost';
+  const params = isMethod ? `<span class="m-params">(${esc(m.params ?? '')})</span>` : '';
+  const type = m.type ? `<span class="m-type">: ${esc(m.type)}</span>` : '';
+  row.innerHTML = `${m.mods?.length ? `<span class="m-mods">${esc(m.mods.join(' '))} </span>` : ''}${m.vis ? `<span class="m-vis">${esc(m.vis)}</span> ` : ''}<span class="m-name">${esc(m.name)}</span>${params}${type}`;
+  row.appendChild(acceptChip(key)); row.appendChild(rejectChip(key));
+  return row;
 }
 
 export function anchor(a: UmlNode, b: UmlNode): { x: number; y: number } {
@@ -784,10 +976,14 @@ export function renderEdges(): void {
       labels.push({ el, x: labelX, y: labelY });
     }
 
+    const edgeRef = isPending('edge', e.id) ? state.aiPending.find(x => x.type === 'edge' && x.id === e.id) : undefined;
+    if (edgeRef) { const k = refKey(edgeRef); g.appendChild(svgAcceptChip(k, labelX + 10, labelY + 5)); g.appendChild(svgRejectChip(k, labelX + 26, labelY + 5)); }
+
     edgePaths.appendChild(g);
   }
 
-  // de-collision: push stacked relation labels apart so every word stays readable
+  // Tombstone relations for removed edges (ghost snapshot in the pending ref).
+  renderGhostEdges();
   labels.sort((p, q) => p.y - q.y);
   for (let i = 1; i < labels.length; i++) {
     for (let j = 0; j < i; j++) {
