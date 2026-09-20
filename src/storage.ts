@@ -21,6 +21,11 @@ export interface SerializedDiagram {
 
 export const serverRef: { current: boolean } = { current: false };
 export const fileRef: { handle: any } = { handle: null };
+// Last diagram known to be on disk (from /api/diagram) — used to detect
+// external edits (CLI add/edit/remove while the served editor is open).
+export const serverDiskRef: { current: SerializedDiagram | null } = { current: null };
+// Optimistic-concurrency revision from X-Artisan-Rev; sent back on PUT (If-Match).
+export const serverDiskRev: { current: number } = { current: 0 };
 
 export function serialize(): string {
   const diagram: SerializedDiagram = {
@@ -51,9 +56,36 @@ function putToServer(): void {
   if (putTimer) return;
   putTimer = setTimeout(() => {
     putTimer = null;
-    fetch('/api/diagram', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: serialize() }).catch(
-      () => undefined
-    );
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (serverDiskRev.current) headers['If-Match'] = String(serverDiskRev.current);
+    fetch('/api/diagram', { method: 'PUT', headers, body: serialize() })
+      .then(async (res) => {
+        if (res.status === 409) {
+          // Stale tab: disk changed under us (CLI edit / scan). Disk wins —
+          // reload it and let the editor know via event.
+          try {
+            const fresh = await fetch('/api/diagram');
+            if (fresh.ok) {
+              const data = await fresh.json();
+              serverDiskRef.current = data;
+              serverDiskRev.current = Number(fresh.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
+              window.dispatchEvent(new CustomEvent('artisan-disk-conflict', { detail: data }));
+              return;
+            }
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        try {
+          const body = await res.json();
+          if (body?.rev) serverDiskRev.current = body.rev;
+          serverDiskRef.current = JSON.parse(serialize()) as SerializedDiagram;
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => undefined);
   }, 500);
 }
 

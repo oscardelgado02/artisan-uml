@@ -1,6 +1,6 @@
 {
   "name": "artisan-uml",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Artisan UML — A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
   "type": "module",
   "license": "MIT",
@@ -41,6 +41,6 @@
   ],
   "repository": {
     "type": "git",
-      "url": "git+https://github.com/oscardelgado02/artisan-uml.git"
+    "url": "git+https://github.com/oscardelgado02/artisan-uml.git"
   }
 }

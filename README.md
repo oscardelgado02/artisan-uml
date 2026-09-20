@@ -125,6 +125,16 @@ relations in the accent color so they stand out from the class boxes.
   **Navy** (deep sea, gold highlights).
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Shift+Z`
 - **Autosave** to `localStorage`
+- **Pending-change highlights** — changes the human hasn't seen yet render amber until
+  accepted: additions glow, removals render as dashed struck-through **tombstones**
+  (draggable, they skip themselves if the item comes back). The served editor re-reads
+  `diagram.json` every 5s, so terminal edits (`artisan add`/`edit`/`remove`) light up live.
+- **Per-item review** — every amber item (real or tombstone) carries ✓ / ✕ chips:
+  accept or reject individually; the ✕ side reverts the diagram (per-ref ghost reverts,
+  or full restore from the last human state). Global "Mark AI changes seen" and
+  "Reject AI changes" buttons handle everything at once.
+- **Disk-first saving** — the served editor saves with a revision guard (`If-Match`);
+  a stale tab that tries to save over newer disk state gets rejected and reloads it.
 - **Pan** by dragging the canvas (or middle mouse), **zoom** with `Ctrl+scroll`
   or pinch, zoom widget bottom-right, fit-view button
 - **Delete** key removes the selected node/relation

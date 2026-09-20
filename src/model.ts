@@ -105,6 +105,8 @@ export interface PendingRef {
   nodeId?: string;
   change: 'added' | 'modified' | 'removed';
   summary?: string;
+  // Snapshot of a removed item so the editor can render a tombstone until ack.
+  ghost?: Record<string, unknown>;
 }
 
 export interface Camera {
@@ -152,6 +154,15 @@ export const state: AppState = {
 
 export const isPending = (type: PendingRef['type'], id: string): boolean =>
   state.aiPending.some(r => r.type === type && r.id === id);
+
+export const refKey = (r: PendingRef): string => `${r.type}:${r.id}:${r.change}`;
+
+// Refs the human accepted individually (per-item ✓); filtered out of merges so
+// the 5s poll doesn't resurrect them. Persisted for embedded (no server) mode.
+export const acceptedKeys: Set<string> = new Set();
+// Refs the human rejected individually (per-item ✗) — embedded mode only; the
+// server mode reverts the ref server-side instead.
+export const rejectedKeys: Set<string> = new Set();
 
 export const esc = (s: unknown): string =>
   String(s ?? '').replace(

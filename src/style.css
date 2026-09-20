@@ -534,6 +534,43 @@ a.btn {
   background-color: var(--ai-change-bg);
 }
 
+/* tombstones for removed items (pending 'removed' refs) */
+.node.ghost {
+  opacity: 0.75;
+  border-style: dashed;
+  border-color: var(--ai-change);
+  box-shadow: 0 0 0 3px var(--ai-change-bg);
+}
+
+.node.ghost .node-name,
+.node.ghost .m-name,
+.node.ghost .m-type,
+.node.ghost .m-params,
+.node.ghost .m-vis,
+.node.ghost .m-mods {
+  text-decoration: line-through;
+}
+
+.node.ghost .ghost-tag {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ai-change);
+}
+
+.member.ghost {
+  background-color: var(--ai-change-bg);
+  color: var(--ai-change);
+  text-decoration: line-through;
+}
+
+.edge-g.removed .edge-line {
+  stroke-dasharray: 6 5;
+  opacity: 0.8;
+}
+
 .edge-g.ai-change .edge-line {
   stroke: var(--ai-change);
   stroke-width: 2;
@@ -541,6 +578,77 @@ a.btn {
 
 .edge-g.ai-change .mk-stroke {
   stroke: var(--ai-change);
+}
+
+/* per-item accept chip (amber highlights accepted individually) */
+.ref-accept {
+  flex: none;
+  margin-left: auto;
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--ai-change);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ai-change);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ref-accept:hover {
+  background: var(--ai-change);
+  color: var(--card-bg);
+}
+
+.ref-reject {
+  flex: none;
+  margin-left: 4px;
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--ai-change);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ai-change);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ref-reject:hover {
+  background: var(--ai-change);
+  color: var(--card-bg);
+}
+
+svg .ref-reject {
+  fill: var(--ai-change);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+svg .ref-reject:hover {
+  fill: var(--ink, #b45309);
+}
+
+.node.ghost .node-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+svg .ref-accept {
+  fill: var(--ai-change);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+svg .ref-accept:hover {
+  fill: var(--ink, #b45309);
 }
 
 .edge-g.ai-change .mk-fill {
@@ -574,6 +682,17 @@ a.btn {
 
 .btn.ack:hover {
   filter: brightness(1.08);
+}
+
+.btn.reject {
+  background-color: transparent;
+  border-color: var(--ai-change);
+  color: var(--ai-change);
+}
+
+.btn.reject:hover {
+  background-color: var(--ai-change);
+  color: #1a1a1a;
 }
 
 .popover textarea {

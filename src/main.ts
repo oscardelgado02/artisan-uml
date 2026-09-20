@@ -38,6 +38,8 @@ import {
   saveThrottled,
   seedData,
   serverRef,
+  serverDiskRef,
+  serverDiskRev,
   fileRef,
   undo,
   updateUndoButtons,
@@ -61,6 +63,7 @@ import {
 import { copyPlantUML, downloadPlantUML, exportJSON, importJSONFile } from './exporters';
 import type { MenuEntry, MenuItem } from './types';
 import type { PendingRef } from './model';
+import { acceptedKeys, rejectedKeys, refKey } from './model';
 
 const btnAddNode = document.getElementById('btn-add-node') as HTMLButtonElement;
 const btnColorize = document.getElementById('btn-colorize') as HTMLButtonElement;
@@ -860,16 +863,106 @@ function syncAckButton(): void {
   const count = state.aiPending.length;
   btnAck.style.display = count ? '' : 'none';
   btnAck.textContent = `Mark AI changes seen (${count})`;
+  const btnReject = document.getElementById('btn-reject') as HTMLButtonElement | null;
+  if (btnReject) {
+    btnReject.style.display = count ? '' : 'none';
+    btnReject.textContent = `Reject AI changes (${count})`;
+  }
+}
+
+// Diff a freshly read disk diagram against the one the editor last saw;
+// anything new (nodes, members, relations) becomes a pending ref so it
+// renders amber until the human marks it seen.
+function freshDiskRefs(prev: SerializedDiagram, cur: SerializedDiagram): PendingRef[] {
+  const refs: PendingRef[] = [];
+  const prevNodes = new Map((prev.nodes || []).map(n => [n.id, n]));
+  for (const n of cur.nodes || []) {
+    const before = prevNodes.get(n.id);
+    if (!before) {
+      refs.push({ type: 'node', id: n.id, change: 'added', summary: `new ${n.kind} ${n.name}` });
+      continue;
+    }
+    const had = new Set(
+      [...(before.attributes || []), ...(before.methods || [])].map(m => m.id)
+    );
+    for (const m of [...(n.attributes || []), ...(n.methods || [])]) {
+      if (!had.has(m.id)) refs.push({ type: 'member', id: m.id, nodeId: n.id, change: 'added', summary: `${n.name}: + ${m.name}` });
+    }
+  }
+  for (const n of prevNodes.values()) {
+    if (!(cur.nodes || []).some(c => c.id === n.id)) {
+      refs.push({ type: 'node', id: n.id, change: 'removed', summary: `removed class ${n.name}`, ghost: n as unknown as Record<string, unknown> });
+    }
+    const has = new Set([...(n.attributes || []), ...(n.methods || [])].map(m => m.id));
+    const now = cur.nodes?.find(c => c.id === n.id);
+    if (now) {
+      for (const m of [...(n.attributes || []), ...(n.methods || [])]) {
+        if (!now.attributes?.some(c => c.id === m.id) && !now.methods?.some(c => c.id === m.id)) {
+          refs.push({ type: 'member', id: m.id, nodeId: n.id, change: 'removed', summary: `${n.name}: removed ${m.name}`, ghost: { nodeId: n.id, member: m } });
+        }
+      }
+      void has;
+    }
+  }
+  const prevEdges = new Map((prev.edges || []).map(e => [e.id, e]));
+  for (const e of cur.edges || []) {
+    if (!prevEdges.has(e.id)) refs.push({ type: 'edge', id: e.id, change: 'added', summary: `new relation ${e.from} → ${e.to}` });
+  }
+  for (const e of prevEdges.values()) {
+    if (!(cur.edges || []).some(c => c.id === e.id)) {
+      const nameOf = (id: string) => prevNodes.get(id)?.name ?? id;
+      refs.push({
+        type: 'edge',
+        id: e.id,
+        change: 'removed',
+        summary: `removed relation ${nameOf(e.from)} → ${nameOf(e.to)}`,
+        ghost: { ...e, fromName: nameOf(e.from), toName: nameOf(e.to) },
+      });
+    }
+  }
+  return refs;
 }
 
 async function refreshPending(): Promise<void> {
   try {
+    // external diagram changes (CLI add/edit/remove while serving)
+    const diskRes = await fetch('/api/diagram');
+    if (diskRes.ok && serverDiskRef.current) {
+      const disk = (await diskRes.json()) as SerializedDiagram;
+      serverDiskRev.current = Number(diskRes.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
+      if (Array.isArray(disk.nodes)) {
+        const fresh = freshDiskRefs(serverDiskRef.current, disk);
+        serverDiskRef.current = disk;
+        if (fresh.length) {
+          loadInto(disk);
+          const known = new Set(state.aiPending.map(r => `${r.type}:${r.id}:${r.change}`));
+          const unseen = fresh.filter(r => !known.has(`${r.type}:${r.id}:${r.change}`));
+          state.aiPending = [...state.aiPending, ...unseen];
+          syncAckButton();
+          renderAll();
+          toast('Diagram changed on disk — new items highlighted');
+          // persist the refs server-side so they survive a page reload
+          if (unseen.length) {
+            void fetch('/api/pending', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refs: unseen }),
+            }).catch(() => undefined);
+          }
+        }
+      }
+    }
     const res = await fetch('/api/pending');
     if (!res.ok) return;
-    const data = (await res.json()) as { refs?: PendingRef[] };
-    const refs = Array.isArray(data.refs) ? data.refs : [];
-    if (JSON.stringify(refs) !== JSON.stringify(state.aiPending)) {
-      state.aiPending = refs;
+    const data = (await res.json()) as { refs?: PendingRef[] } | PendingRef[];
+    const refs = Array.isArray(data) ? data : Array.isArray(data.refs) ? data.refs : [];
+    const visible = refs.filter(r => !acceptedKeys.has(refKey(r)));
+    const diskNew = state.aiPending.filter(
+      r => !refs.some(p => p.type === r.type && p.id === r.id && p.change === r.change)
+    );
+    const merged = [...visible, ...diskNew.filter(r => !acceptedKeys.has(refKey(r)))];
+    if (JSON.stringify(merged) !== JSON.stringify(state.aiPending)) {
+      state.aiPending = merged;
       syncAckButton();
       renderAll();
     }
@@ -877,6 +970,133 @@ async function refreshPending(): Promise<void> {
     /* offline */
   }
 }
+
+// Accept one pending ref: editor drops it immediately, server gets it for
+// pending.json; embedded mode persists the accepted key in localStorage.
+async function acceptRef(key: string): Promise<void> {
+  acceptedKeys.add(key);
+  if (embedded) persistAccepted();
+  state.aiPending = state.aiPending.filter(r => refKey(r) !== key);
+  syncAckButton();
+  renderAll();
+  if (serverRef.current) {
+    try {
+      const res = await fetch('/api/ack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: [key] }),
+      });
+      if (!res.ok) throw new Error('not ok');
+    } catch {
+      toast('Could not reach the artisan server');
+    }
+  }
+}
+window.addEventListener('artisan-accept', ev => {
+  void acceptRef((ev as CustomEvent<string>).detail);
+});
+
+// Embedded (no server) revert: apply the inverse of a pending ref to the
+// in-memory diagram — same semantics as the CLI's runReject.
+function applyRevert(r: PendingRef): void {
+  const g = (r.ghost ?? {}) as Record<string, any>;
+  if (r.change === 'added') {
+    if (r.type === 'node') {
+      state.nodes = state.nodes.filter(n => n.id !== r.id);
+      state.edges = state.edges.filter(e => e.from !== r.id && e.to !== r.id);
+    } else if (r.type === 'member') {
+      const n = state.nodes.find(x => x.id === (g.nodeId || r.nodeId));
+      if (n) {
+        n.attributes = (n.attributes || []).filter(m => m.id !== r.id);
+        n.methods = (n.methods || []).filter(m => m.id !== r.id);
+      }
+    } else if (r.type === 'edge') {
+      state.edges = state.edges.filter(e => e.id !== r.id);
+    }
+  } else if (r.change === 'modified') {
+    if (r.type === 'node') {
+      const n = state.nodes.find(x => x.id === r.id || x.name === r.id);
+      if (n) {
+        if (g.name) n.name = g.name;
+        if (g.kind) n.kind = g.kind;
+      }
+    } else if (g.member) {
+      const n = state.nodes.find(x => x.id === (g.nodeId || r.nodeId));
+      if (!n) return;
+      n.attributes = (n.attributes || []).filter(m => m.id !== r.id && m.id !== g.removeId);
+      n.methods = (n.methods || []).filter(m => m.id !== r.id && m.id !== g.removeId);
+      const restored = { ...g.member, id: r.id };
+      if (restored.params != null) n.methods = [...n.methods, restored];
+      else n.attributes = [...n.attributes, restored];
+    }
+  } else if (r.change === 'removed') {
+    if (r.type === 'node' && g.id) {
+      state.nodes.push({
+        id: g.id,
+        kind: g.kind || 'class',
+        name: g.name || g.id,
+        note: g.note || '',
+        x: g.x ?? 200,
+        y: g.y ?? 200,
+        attributes: g.attributes || [],
+        methods: g.methods || [],
+      } as never);
+    } else if (r.type === 'member' && g.member) {
+      const n = state.nodes.find(x => x.id === g.nodeId);
+      if (!n) return;
+      const restored = { ...g.member, id: r.id };
+      if (restored.params != null) n.methods = [...n.methods, restored];
+      else n.attributes = [...n.attributes, restored];
+    } else if (r.type === 'edge' && g.from) {
+      state.edges.push({
+        id: r.id,
+        kind: g.kind || 'association',
+        from: g.from,
+        to: g.to,
+        label: g.label || '',
+        fromMult: g.fromMult || '',
+        toMult: g.toMult || '',
+        note: g.note || '',
+      } as never);
+    }
+  }
+}
+
+async function rejectRefs(keys: string[]): Promise<void> {
+  const targets = state.aiPending.filter(r => keys.includes(refKey(r)));
+  for (const k of keys) rejectedKeys.add(k);
+  if (embedded) {
+    try {
+      localStorage.setItem('artisan-rejected-keys', JSON.stringify([...rejectedKeys]));
+    } catch {
+      /* storage unavailable */
+    }
+    for (const r of targets) applyRevert(r);
+    save();
+  } else if (serverRef.current) {
+    try {
+      const res = await fetch('/api/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys }),
+      });
+      if (!res.ok) throw new Error('not ok');
+      const data = (await res.json()) as { diagram?: SerializedDiagram };
+      if (data.diagram && Array.isArray(data.diagram.nodes)) {
+        loadInto(data.diagram);
+        serverDiskRef.current = data.diagram;
+      }
+    } catch {
+      toast('Could not reach the artisan server');
+    }
+  }
+  state.aiPending = state.aiPending.filter(r => !keys.includes(refKey(r)));
+  syncAckButton();
+  renderAll();
+}
+window.addEventListener('artisan-reject', ev => {
+  void rejectRefs([(ev as CustomEvent<string>).detail]);
+});
 
 btnAck.addEventListener('click', async () => {
   if (!serverRef.current) {
@@ -886,6 +1106,8 @@ btnAck.addEventListener('click', async () => {
   try {
     const res = await fetch('/api/ack', { method: 'POST' });
     if (!res.ok) return;
+    for (const r of state.aiPending) acceptedKeys.add(refKey(r));
+    persistAccepted();
     state.aiPending = [];
     syncAckButton();
     renderAll();
@@ -895,6 +1117,32 @@ btnAck.addEventListener('click', async () => {
   }
 });
 
+// Global reject: full revert (last human state) via server, or local inverse
+// of every pending ref in embedded mode.
+const btnReject = document.getElementById('btn-reject') as HTMLButtonElement | null;
+btnReject?.addEventListener('click', async () => {
+  if (!state.aiPending.length) return;
+  const all = state.aiPending.map(refKey);
+  if (serverRef.current) {
+    await rejectRefs([]);
+  } else if (embedded) {
+    await rejectRefs(all);
+  } else {
+    toast('Run `artisan reject` in your project to revert');
+    return;
+  }
+  toast('AI changes rejected — diagram reverted');
+});
+
+function persistAccepted(): void {
+  if (!embedded) return;
+  try {
+    localStorage.setItem('artisan-accepted-keys', JSON.stringify([...acceptedKeys]));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 async function tryServerBoot(): Promise<boolean> {
   try {
     const res = await fetch('/api/diagram');
@@ -903,6 +1151,8 @@ async function tryServerBoot(): Promise<boolean> {
     if (!Array.isArray(data.nodes)) return false;
     serverRef.current = true;
     loadInto(data);
+    serverDiskRef.current = data;
+    serverDiskRev.current = Number(res.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
     await refreshPending();
     setInterval(refreshPending, 5000);
     return true;
@@ -942,6 +1192,23 @@ async function boot(): Promise<void> {
       loadInto(seedData());
     }
   }
+  // embedded mode: individually accepted refs were persisted locally
+  if (embedded) {
+    try {
+      const saved = JSON.parse(localStorage.getItem('artisan-accepted-keys') ?? '[]') as string[];
+      for (const k of saved) acceptedKeys.add(k);
+      state.aiPending = state.aiPending.filter(r => !acceptedKeys.has(refKey(r)));
+    } catch {
+      /* storage unavailable */
+    }
+    try {
+      const savedRej = JSON.parse(localStorage.getItem('artisan-rejected-keys') ?? '[]') as string[];
+      for (const k of savedRej) rejectedKeys.add(k);
+      state.aiPending = state.aiPending.filter(r => !rejectedKeys.has(refKey(r)));
+    } catch {
+      /* storage unavailable */
+    }
+  }
   syncColorize();
   applyThemeIcon();
   selLines.value = state.edgeStyle;
@@ -963,5 +1230,14 @@ async function boot(): Promise<void> {
     toast('Synced with artisan server');
   }
 }
+
+// Stale-tab save was rejected by the server (rev mismatch): disk wins.
+window.addEventListener('artisan-disk-conflict', ((e: CustomEvent<SerializedDiagram>) => {
+  if (e.detail?.nodes) {
+    loadInto(e.detail);
+    renderAll();
+    toast('Diagram changed on disk — reloaded; your edit was not saved');
+  }
+}) as EventListener);
 
 boot();
