@@ -9,6 +9,7 @@
 - Individual accept/reject: every amber item (real or tombstone) gets a ✓ chip and a ✕ chip (HTML for nodes/members, SVG text for relations). ✓ posts `/api/ack {keys}` (or filters locally + localStorage in the embedded editor), ✕ posts `/api/reject {keys}` — which reverts the diagram server-side — or applies the inverse op in memory when embedded. Global "Reject AI changes" button next to "Mark AI changes seen" reverts everything; both buttons enable/disable with the pending count.
 - Stale-tab protection: the server tracks a revision from `diagram.json`'s mtime; PUTs must send `If-Match` with the revision they last saw or get a 409 — the tab then reloads the disk state ("your edit was not saved"). Disk always wins over stale browser state; CLI edits/scans can no longer be clobbered by a lagging tab.
 - The served editor now reports its disk-diff findings to `POST /api/pending`, so editor-made changes persist as refs like CLI ones — a removal's tombstone survives a reload instead of evaporating with the page.
+- Tombstone relations now follow their tombstone while it is being dragged: the drag handler updates the position override and re-renders edges on every mousemove (previously the re-anchor only happened on mouseup, so relations snapped late).
 
 ## 17.09.2026
 - Default seed cleaned up: the `Mood` enum is gone and Owner now owns `IPet` instead of Dog — the starter diagram matches what the petshop code actually says (5 types, 4 relations).

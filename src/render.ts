@@ -344,6 +344,8 @@ function renderGhostNodes(): void {
         pos.y = oy + (e2.clientY - sy);
         el.style.left = pos.x + 'px';
         el.style.top = pos.y + 'px';
+        ghostOverrides.set(key, { x: pos.x, y: pos.y });
+        renderEdges();
       };
       const up = () => {
         ghostOverrides.set(key, { x: pos.x, y: pos.y });
