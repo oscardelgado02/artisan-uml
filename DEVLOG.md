@@ -1,7 +1,10 @@
 # Devlog
 
 ## 20.09.2026
-- Save-warning card in the editor: a closable card at the right-center of the screen says `diagram.html` is mainly for viewing and points to `artisan serve` (localhost:4173) as the best-experience path. Styled with the editor's card tokens (theme-aware), no localStorage — it reappears on every open. Hides itself once `artisan serve` is detected or "Connect file" succeeds.
+- Save-warning card in the editor: a static card at the right-center of the screen says `diagram.html` is mainly for viewing and points to `artisan serve` (localhost:4173) as the best-experience path. Styled with the editor's card tokens (theme-aware), no close button, no localStorage — it reappears on every open. Gated to the embedded `diagram.html` only (same `embedded && !server` check as the Connect-file button); the served and plain editors never show it.
+- Served editor now picks up external diagram changes: the 5s poll also re-reads `/api/diagram`, diffs it against the last version the editor saw, reloads and highlights anything new (classes, members, relations) amber — so `artisan add`/`edit`/`remove` from the terminal show up live. Own saves don't self-trigger (disk baseline refreshed after each PUT).
+- Real fix for missing amber in serve mode: `GET /api/pending` returns a bare array but the editor read `data.refs` off it — every poll replaced pending refs with `[]`. The reader now accepts both shapes. (Embedded `diagram.html` never hit this; its refs come from the `__ARTISAN__` payload.)
+- Pending refs from terminal edits are recorded CLI-side (see artisan-uml-cli), so highlights survive a page reload and clear with the "Mark AI changes seen" button.
 
 ## 17.09.2026
 - Default seed cleaned up: the `Mood` enum is gone and Owner now owns `IPet` instead of Dog — the starter diagram matches what the petshop code actually says (5 types, 4 relations).

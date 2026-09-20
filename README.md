@@ -125,6 +125,9 @@ relations in the accent color so they stand out from the class boxes.
   **Navy** (deep sea, gold highlights).
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Shift+Z`
 - **Autosave** to `localStorage`
+- **Pending-change highlights** — changes the human hasn't seen yet render amber
+  until **Mark AI changes seen**; the served editor also re-reads `diagram.json`
+  every 5s, so terminal edits (`artisan add`/`edit`/`remove`) light up live
 - **Pan** by dragging the canvas (or middle mouse), **zoom** with `Ctrl+scroll`
   or pinch, zoom widget bottom-right, fit-view button
 - **Delete** key removes the selected node/relation

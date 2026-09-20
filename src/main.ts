@@ -38,6 +38,7 @@ import {
   saveThrottled,
   seedData,
   serverRef,
+  serverDiskRef,
   fileRef,
   undo,
   updateUndoButtons,
@@ -862,14 +863,59 @@ function syncAckButton(): void {
   btnAck.textContent = `Mark AI changes seen (${count})`;
 }
 
+// Diff a freshly read disk diagram against the one the editor last saw;
+// anything new (nodes, members, relations) becomes a pending ref so it
+// renders amber until the human marks it seen.
+function freshDiskRefs(prev: SerializedDiagram, cur: SerializedDiagram): PendingRef[] {
+  const refs: PendingRef[] = [];
+  const prevNodes = new Map((prev.nodes || []).map(n => [n.id, n]));
+  for (const n of cur.nodes || []) {
+    const before = prevNodes.get(n.id);
+    if (!before) {
+      refs.push({ type: 'node', id: n.id, change: 'added', summary: `new ${n.kind} ${n.name}` });
+      continue;
+    }
+    const had = new Set(
+      [...(before.attributes || []), ...(before.methods || [])].map(m => m.id)
+    );
+    for (const m of [...(n.attributes || []), ...(n.methods || [])]) {
+      if (!had.has(m.id)) refs.push({ type: 'member', id: m.id, nodeId: n.id, change: 'added', summary: `${n.name}: + ${m.name}` });
+    }
+  }
+  const prevEdges = new Set((prev.edges || []).map(e => e.id));
+  for (const e of cur.edges || []) {
+    if (!prevEdges.has(e.id)) refs.push({ type: 'edge', id: e.id, change: 'added', summary: `new relation ${e.from} → ${e.to}` });
+  }
+  return refs;
+}
+
 async function refreshPending(): Promise<void> {
   try {
+    // external diagram changes (CLI add/edit/remove while serving)
+    const diskRes = await fetch('/api/diagram');
+    if (diskRes.ok && serverDiskRef.current) {
+      const disk = (await diskRes.json()) as SerializedDiagram;
+      if (Array.isArray(disk.nodes)) {
+        const fresh = freshDiskRefs(serverDiskRef.current, disk);
+        serverDiskRef.current = disk;
+        if (fresh.length) {
+          loadInto(disk);
+          const known = new Set(state.aiPending.map(r => `${r.type}:${r.id}:${r.change}`));
+          state.aiPending = [...state.aiPending, ...fresh.filter(r => !known.has(`${r.type}:${r.id}:${r.change}`))];
+          syncAckButton();
+          renderAll();
+          toast('Diagram changed on disk — new items highlighted');
+        }
+      }
+    }
     const res = await fetch('/api/pending');
     if (!res.ok) return;
-    const data = (await res.json()) as { refs?: PendingRef[] };
-    const refs = Array.isArray(data.refs) ? data.refs : [];
-    if (JSON.stringify(refs) !== JSON.stringify(state.aiPending)) {
-      state.aiPending = refs;
+    const data = (await res.json()) as { refs?: PendingRef[] } | PendingRef[];
+    const refs = Array.isArray(data) ? data : Array.isArray(data.refs) ? data.refs : [];
+    const diskNew = state.aiPending.filter(r => r.change === 'added' && !refs.some(p => p.type === r.type && p.id === r.id && p.change === r.change));
+    const merged = [...refs, ...diskNew];
+    if (JSON.stringify(merged) !== JSON.stringify(state.aiPending)) {
+      state.aiPending = merged;
       syncAckButton();
       renderAll();
     }
@@ -903,6 +949,7 @@ async function tryServerBoot(): Promise<boolean> {
     if (!Array.isArray(data.nodes)) return false;
     serverRef.current = true;
     loadInto(data);
+    serverDiskRef.current = data;
     await refreshPending();
     setInterval(refreshPending, 5000);
     return true;

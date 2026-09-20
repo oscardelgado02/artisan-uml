@@ -21,6 +21,9 @@ export interface SerializedDiagram {
 
 export const serverRef: { current: boolean } = { current: false };
 export const fileRef: { handle: any } = { handle: null };
+// Last diagram known to be on disk (from /api/diagram) — used to detect
+// external edits (CLI add/edit/remove while the served editor is open).
+export const serverDiskRef: { current: SerializedDiagram | null } = { current: null };
 
 export function serialize(): string {
   const diagram: SerializedDiagram = {
@@ -51,9 +54,15 @@ function putToServer(): void {
   if (putTimer) return;
   putTimer = setTimeout(() => {
     putTimer = null;
-    fetch('/api/diagram', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: serialize() }).catch(
-      () => undefined
-    );
+    fetch('/api/diagram', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: serialize() })
+      .then(() => {
+        try {
+          serverDiskRef.current = JSON.parse(serialize()) as SerializedDiagram;
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => undefined);
   }, 500);
 }
 
