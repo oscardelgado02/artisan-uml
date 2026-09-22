@@ -12,7 +12,7 @@ import {
   state,
   uid,
 } from './model';
-import type { EdgeKind, EdgeStyle, NodeKind } from './model';
+import type { EdgeKind, EdgeStyle, ImplSync, NodeKind } from './model';
 import {
   applyCam,
   fitView,
@@ -837,6 +837,7 @@ btnClear.addEventListener('click', () => {
 const btnNotes = document.getElementById('btn-notes') as HTMLButtonElement;
 const btnAck = document.getElementById('btn-ack') as HTMLButtonElement;
 const btnConnect = document.getElementById('btn-connect') as HTMLButtonElement;
+const btnImpl = document.getElementById('btn-impl') as HTMLButtonElement;
 
 btnNotes.addEventListener('click', openProjectNotes);
 
@@ -867,6 +868,34 @@ function syncAckButton(): void {
   if (btnReject) {
     btnReject.style.display = count ? '' : 'none';
     btnReject.textContent = `Reject AI changes (${count})`;
+  }
+}
+
+// Code-sync badge: shown while the code differs from the diagram (impl-diff).
+// Hover explains what to do — run `artisan impl-diff`, then /artisan-implement.
+function syncImplBadge(): void {
+  const s = state.implSync;
+  btnImpl.style.display = s?.changed ? '' : 'none';
+  if (s?.changed) {
+    const c = s.counts;
+    const parts = c ? [`${c.missing} missing in code`, `${c.drift} not in diagram`, `${c.mismatch} signature mismatch${c.mismatch === 1 ? '' : 'es'}`] : [];
+    btnImpl.title =
+      'The code differs from the diagram. Run `artisan impl-diff` in your project ' +
+      'to see the details, then /artisan-implement (or /artisan-scaffold) to update the code.' +
+      (parts.length ? ` (${parts.join(', ')})` : '');
+  }
+}
+
+async function refreshImplDiff(): Promise<void> {
+  try {
+    const res = await fetch('/api/impl');
+    if (!res.ok) return;
+    const data = (await res.json()) as ImplSync;
+    const before = JSON.stringify(state.implSync);
+    state.implSync = data;
+    if (JSON.stringify(data) !== before) syncImplBadge();
+  } catch {
+    /* offline */
   }
 }
 
@@ -1155,6 +1184,8 @@ async function tryServerBoot(): Promise<boolean> {
     serverDiskRev.current = Number(res.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
     await refreshPending();
     setInterval(refreshPending, 5000);
+    void refreshImplDiff();
+    setInterval(refreshImplDiff, 30000);
     return true;
   } catch {
     return false;
@@ -1164,6 +1195,7 @@ async function tryServerBoot(): Promise<boolean> {
 interface EmbeddedPayload {
   diagram?: SerializedDiagram;
   pending?: PendingRef[];
+  implDiff?: ImplSync | null;
 }
 
 const embedded: EmbeddedPayload | undefined = (window as unknown as { __ARTISAN__?: EmbeddedPayload }).__ARTISAN__;
@@ -1173,6 +1205,7 @@ async function boot(): Promise<void> {
   if (embedded?.diagram && Array.isArray(embedded.diagram.nodes)) {
     loadInto(embedded.diagram);
     state.aiPending = Array.isArray(embedded.pending) ? embedded.pending : [];
+    state.implSync = embedded.implDiff ?? null;
     fresh = false;
   } else {
     let raw: string | null = null;
@@ -1214,6 +1247,7 @@ async function boot(): Promise<void> {
   selLines.value = state.edgeStyle;
   updateUndoButtons();
   syncAckButton();
+  syncImplBadge();
   if (embedded && !serverRef.current) {
     btnConnect.style.display = '';
     (document.getElementById('save-warn') as HTMLElement).hidden = false;

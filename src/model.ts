@@ -122,6 +122,12 @@ export interface Selection {
 
 export type EdgeStyle = 'straight' | 'ortho' | 'smooth' | 'elliptic';
 
+// Summary of `artisan impl-diff` (diagram vs code) — drives the code-sync badge.
+export interface ImplSync {
+  changed: boolean;
+  counts?: { missing: number; drift: number; mismatch: number };
+}
+
 export interface AppState {
   seq: number;
   nodes: UmlNode[];
@@ -135,6 +141,7 @@ export interface AppState {
   projectNotes: string;
   aiPending: PendingRef[];
   edgeStyle: EdgeStyle;
+  implSync: ImplSync | null;
 }
 
 export const state: AppState = {
@@ -150,6 +157,7 @@ export const state: AppState = {
   projectNotes: '',
   aiPending: [],
   edgeStyle: 'straight',
+  implSync: null,
 };
 
 export const isPending = (type: PendingRef['type'], id: string): boolean =>

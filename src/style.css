@@ -695,6 +695,17 @@ svg .ref-accept:hover {
   color: #1a1a1a;
 }
 
+.btn.impl-warn {
+  background-color: transparent;
+  border-color: var(--ai-change);
+  color: var(--ai-change);
+}
+
+.btn.impl-warn:hover {
+  background-color: var(--ai-change);
+  color: #1a1a1a;
+}
+
 .popover textarea {
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
