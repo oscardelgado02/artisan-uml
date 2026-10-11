@@ -795,16 +795,35 @@ fileImport.addEventListener('change', () => {
   html.classList.toggle('dark');
   localStorage.setItem('wise-uml-theme', html.classList.contains('dark') ? 'dark' : 'light');
   applyThemeIcon();
+  updateFavicon();
 });
 
 const selPalette = document.getElementById('sel-palette') as HTMLSelectElement;
 selPalette.value = document.documentElement.getAttribute('data-theme') ?? 'default';
+
+function updateFavicon() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n: string) => cs.getPropertyValue(n).trim();
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+    `<rect width="32" height="32" rx="7" fill="${v('--primary-from')}"/>` +
+    `<g fill="none" stroke-linecap="round">` +
+    `<path d="M14.6 11 L9.2 22.4" stroke="${v('--background')}" stroke-width="2.2"/>` +
+    `<path d="M17.4 11 L22.8 22.4" stroke="${v('--background')}" stroke-width="2.2"/>` +
+    `<circle cx="16" cy="8.2" r="2.4" stroke="${v('--background')}" stroke-width="2"/>` +
+    `<path d="M10.6 25 Q16 28.8 21.4 25" stroke="${v('--background')}" stroke-width="1.8"/>` +
+    `</g></svg>`;
+  document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.setAttribute('href', 'data:image/svg+xml,' + encodeURIComponent(svg));
+}
+updateFavicon();
+
 selPalette.addEventListener('change', () => {
   const p = selPalette.value;
   if (p === 'default') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme', p);
   localStorage.setItem('wise-uml-palette', p);
   renderAll();
+  updateFavicon();
 });
 
 btnClear.addEventListener('click', () => {

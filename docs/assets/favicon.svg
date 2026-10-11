@@ -1,4 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="7" fill="#b45309"/>
-  <text x="16" y="23.8" text-anchor="middle" font-family="Lora, Georgia, 'Times New Roman', serif" font-size="21" font-weight="600" fill="#faf8f5">A</text>
+  <g fill="none" stroke-linecap="round">
+    <path d="M14.6 11 L9.2 22.4" stroke="#faf8f5" stroke-width="2.2"/>
+    <path d="M17.4 11 L22.8 22.4" stroke="#faf8f5" stroke-width="2.2"/>
+    <circle cx="16" cy="8.2" r="2.4" stroke="#faf8f5" stroke-width="2"/>
+    <path d="M10.6 25 Q16 28.8 21.4 25" stroke="#faf8f5" stroke-width="1.8"/>
+  </g>
 </svg>

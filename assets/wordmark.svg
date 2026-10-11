@@ -1,25 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" width="280" height="64">
   <defs>
+    <style>
+      @font-face {
+        font-family: 'Lora';
+        font-style: normal;
+        font-weight: 600;
+        src: url(data:font/woff2;base64,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) format('woff2');
+      }
+    </style>
     <linearGradient id="brass" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#b45309"/>
       <stop offset="1" stop-color="#c2711c"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
   </defs>
 
+  <!-- icon: the Artisan compass tile -->
+  <g transform="translate(0 9) scale(1.4375)">
+    <rect width="32" height="32" rx="7" fill="#b45309"/>
+    <g fill="none" stroke-linecap="round">
+      <path d="M14.6 11 L9.2 22.4" stroke="#faf8f5" stroke-width="2.2"/>
+      <path d="M17.4 11 L22.8 22.4" stroke="#faf8f5" stroke-width="2.2"/>
+      <circle cx="16" cy="8.2" r="2.4" stroke="#faf8f5" stroke-width="2"/>
+      <path d="M10.6 25 Q16 28.8 21.4 25" stroke="#faf8f5" stroke-width="1.8"/>
+    </g>
+  </g>
+
   <text
-    x="150" y="42"
-    text-anchor="middle"
+    x="60" y="42"
+    text-anchor="start"
     font-family="Lora, Georgia, 'Times New Roman', serif"
     font-size="34"
     font-weight="600"
     fill="url(#brass)"
-    filter="url(#glow)"
+
   >Artisan UML</text>
 </svg>

@@ -1,5 +1,7 @@
 <div align="center">
-  <img src="assets/wordmark.svg" alt="Artisan UML" width="300" />
+  <img src="assets/wordmark.svg" alt="Artisan UML" width="280" />
+
+  <h2>The editor</h2>
 </div>
 
 <div align="center">

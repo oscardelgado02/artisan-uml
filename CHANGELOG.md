@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 11.10.2026
+
+### Added
+- **"Code out of sync" badge** next to the ack/reject buttons: shows while the code differs from the diagram (`artisan impl-diff` result), hover explains the counts and the fix (`artisan impl-diff` → `/artisan-implement`).
+- Embedded mode reads the badge state from the `__ARTISAN__` payload; server mode fetches `GET /api/impl` every 30s.
+- Amber-outline styling matches the review buttons row.
+
 ## 1.1.0 — 20.09.2026
 
 ### Added
