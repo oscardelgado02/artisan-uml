@@ -1,5 +1,8 @@
 # Devlog
 
+## 22.09.2026
+- "Code out of sync" badge next to the ack/reject buttons: shows while the code differs from the diagram (`artisan impl-diff` result), hover explains the counts and the fix (`artisan impl-diff` → `/artisan-implement`). Embedded mode reads it from the `__ARTISAN__` payload; served mode fetches `GET /api/impl` every 30s. Amber-outline styling matches the review buttons.
+
 ## 20.09.2026
 - Save-warning card in the editor: a static card at the right-center of the screen says `diagram.html` is mainly for viewing and points to `artisan serve` (localhost:4173) as the best-experience path. Styled with the editor's card tokens (theme-aware), no close button, no localStorage — it reappears on every open. Gated to the embedded `diagram.html` only (same `embedded && !server` check as the Connect-file button); the served and plain editors never show it.
 - Served editor now picks up external diagram changes: the 5s poll also re-reads `/api/diagram`, diffs it against the last version the editor saw, reloads and highlights anything new (classes, members, relations) amber — so `artisan add`/`edit`/`remove` from the terminal show up live. Own saves don't self-trigger (disk baseline refreshed after each PUT).

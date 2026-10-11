@@ -133,6 +133,10 @@ relations in the accent color so they stand out from the class boxes.
   accept or reject individually; the ✕ side reverts the diagram (per-ref ghost reverts,
   or full restore from the last human state). Global "Mark AI changes seen" and
   "Reject AI changes" buttons handle everything at once.
+- **Code out of sync badge** — while the code differs from the diagram (`artisan
+  impl-diff`: classes/members/relations missing from the code, code drift, signature
+  mismatches), an ⚠ **Code out of sync** label sits next to the review buttons; hover
+  it for the counts and the fix (`artisan impl-diff` → `/artisan-implement`).
 - **Disk-first saving** — the served editor saves with a revision guard (`If-Match`);
   a stale tab that tries to save over newer disk state gets rejected and reloads it.
 - **Pan** by dragging the canvas (or middle mouse), **zoom** with `Ctrl+scroll`
