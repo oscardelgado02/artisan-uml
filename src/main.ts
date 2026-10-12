@@ -891,7 +891,7 @@ function syncAckButton(): void {
 }
 
 // Code-sync badge: shown while the code differs from the diagram (impl-diff).
-// Hover explains what to do — run `artisan impl-diff`, then /artisan-implement.
+// Hover explains what to do — run `artuml impl-diff`, then /artisan-implement.
 function syncImplBadge(): void {
   const s = state.implSync;
   btnImpl.style.display = s?.changed ? '' : 'none';
@@ -899,7 +899,7 @@ function syncImplBadge(): void {
     const c = s.counts;
     const parts = c ? [`${c.missing} missing in code`, `${c.drift} not in diagram`, `${c.mismatch} signature mismatch${c.mismatch === 1 ? '' : 'es'}`] : [];
     btnImpl.title =
-      'The code differs from the diagram. Run `artisan impl-diff` in your project ' +
+      'The code differs from the diagram. Run `artuml impl-diff` in your project ' +
       'to see the details, then /artisan-implement (or /artisan-scaffold) to update the code.' +
       (parts.length ? ` (${parts.join(', ')})` : '');
   }
@@ -1036,7 +1036,7 @@ async function acceptRef(key: string): Promise<void> {
       });
       if (!res.ok) throw new Error('not ok');
     } catch {
-      toast('Could not reach the artisan server');
+      toast('Could not reach the artuml server');
     }
   }
 }
@@ -1135,7 +1135,7 @@ async function rejectRefs(keys: string[]): Promise<void> {
         serverDiskRef.current = data.diagram;
       }
     } catch {
-      toast('Could not reach the artisan server');
+      toast('Could not reach the artuml server');
     }
   }
   state.aiPending = state.aiPending.filter(r => !keys.includes(refKey(r)));
@@ -1148,7 +1148,7 @@ window.addEventListener('artisan-reject', ev => {
 
 btnAck.addEventListener('click', async () => {
   if (!serverRef.current) {
-    toast('Run `artisan ack` in your project to confirm');
+    toast('Run `artuml ack` in your project to confirm');
     return;
   }
   try {
@@ -1161,7 +1161,7 @@ btnAck.addEventListener('click', async () => {
     renderAll();
     toast('AI changes marked as seen');
   } catch {
-    toast('Could not reach the artisan server');
+    toast('Could not reach the artuml server');
   }
 });
 
@@ -1176,7 +1176,7 @@ btnReject?.addEventListener('click', async () => {
   } else if (embedded) {
     await rejectRefs(all);
   } else {
-    toast('Run `artisan reject` in your project to revert');
+    toast('Run `artuml reject` in your project to revert');
     return;
   }
   toast('AI changes rejected — diagram reverted');
@@ -1280,7 +1280,7 @@ async function boot(): Promise<void> {
     renderAll();
     applyCam();
     btnConnect.style.display = 'none';
-    toast('Synced with artisan server');
+    toast('Synced with artuml server');
   }
 }
 

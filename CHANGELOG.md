@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 12.10.2026
+
+### Changed
+- Copy updates: UI texts and docs now reference the CLI binary by its new name `artuml` (impl-diff badge, save-warning card, README commands). Internal event names and the `artisan` theme id are unchanged.
+
 ## 1.2.0 — 11.10.2026
 
 ### Added

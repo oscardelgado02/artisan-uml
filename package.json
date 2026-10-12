@@ -1,10 +1,10 @@
 {
   "name": "artisan-uml",
-  "version": "1.2.0",
-  "description": "Artisan UML — A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
+  "version": "1.2.1",
+  "description": "Artisan UML \u2014 A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
   "type": "module",
   "license": "MIT",
-  "author": "Óscar Delgado <oscardelgado02>",
+  "author": "\u00d3scar Delgado <oscardelgado02>",
   "homepage": "https://editor.artisan-uml.dev/",
   "bugs": {
     "url": "https://github.com/oscardelgado02/artisan-uml/issues"
