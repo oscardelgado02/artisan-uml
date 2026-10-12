@@ -1,5 +1,9 @@
 # Devlog
 
+## 12.10.2026
+- Copy updates for the CLI rename: badge and save-warning texts now name the binary `artuml` (no theme/event-name changes).
+
+
 ## 22.09.2026
 - "Code out of sync" badge next to the ack/reject buttons: shows while the code differs from the diagram (`artisan impl-diff` result), hover explains the counts and the fix (`artisan impl-diff` → `/artisan-implement`). Embedded mode reads it from the `__ARTISAN__` payload; served mode fetches `GET /api/impl` every 30s. Amber-outline styling matches the review buttons.
 

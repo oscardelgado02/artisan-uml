@@ -122,7 +122,7 @@ export interface Selection {
 
 export type EdgeStyle = 'straight' | 'ortho' | 'smooth' | 'elliptic';
 
-// Summary of `artisan impl-diff` (diagram vs code) — drives the code-sync badge.
+// Summary of `artuml impl-diff` (diagram vs code) — drives the code-sync badge.
 export interface ImplSync {
   changed: boolean;
   counts?: { missing: number; drift: number; mismatch: number };

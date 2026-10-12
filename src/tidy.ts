@@ -1,5 +1,5 @@
 // Tidy: re-layout the whole diagram with Artisan's own layered engine
-// (../layout.mjs — same algorithm `artisan scan` uses), fed the editor's REAL
+// (../layout.mjs — same algorithm `artuml scan` uses), fed the editor's REAL
 // measured box sizes. No stored polylines: edges are drawn live by the current
 // line style (curves dodge nearby classes at render time).
 import { layeredLayout } from '../layout.mjs';
