@@ -71,6 +71,18 @@ width, node cap, wrap budgets). `Tidy` and the auto-layout estimate node sizes f
 the same numbers. If you change the constants or the diagram JSON shape, bump
 `CONTRACT_VERSION` — `pnpm test` checks the CSS and layout against the constants.
 
+### Release
+
+Publishing is manual (no CI workflow):
+
+```bash
+pnpm test           # contract checks
+pnpm publish --access public   # prepack builds dist/, postpack refuses a tarball without it
+```
+
+`dist/` is gitignored, so never publish without the build — `postpack` fails the
+publish when `dist/index.html` is missing from the tarball.
+
 ## Features
 
 ### Nodes

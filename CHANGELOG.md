@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 — 20.10.2026
+
+### Fixed
+- The published package ships the built editor again. `dist/` is gitignored, so the 1.2.1 tarball was packed from an unbuilt checkout and npm silently dropped `dist/`: every `artisan-uml-cli` install ended up without an editor (`artuml scan` skipped `diagram.html`, `artuml editor`/`serve` failed). `prepack` now builds the editor before packing and `postpack` fails the publish when `dist/index.html` is missing from the tarball.
+
 ## 1.2.1 — 12.10.2026
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "artisan-uml",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Artisan UML \u2014 A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
   "type": "module",
   "license": "MIT",
@@ -25,7 +25,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node test/contract.mjs"
+    "test": "node test/contract.mjs",
+    "prepack": "pnpm build",
+    "postpack": "node scripts/assert-pack.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
