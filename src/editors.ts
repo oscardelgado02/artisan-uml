@@ -115,6 +115,46 @@ function positionPopover(el: HTMLDivElement, px: number, py: number): void {
   el.style.visibility = '';
 }
 
+interface ParamRow {
+  name: string;
+  type: string;
+}
+
+function splitParams(s: string): string[] {
+  const parts: string[] = [];
+  let cur = '';
+  let depth = 0;
+  for (const ch of s) {
+    if (ch === '<' || ch === '(' || ch === '[') depth++;
+    else if (ch === '>' || ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0) {
+      parts.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  if (cur.trim()) parts.push(cur);
+  return parts.map(p => p.trim()).filter(Boolean);
+}
+
+// "dx: int" → {name:'dx', type:'int'}; C# order "int dx" is swapped;
+// anything else stays raw (type:'') so it round-trips verbatim.
+function parseParams(s: string): ParamRow[] {
+  return splitParams(s).map(seg => {
+    const colon = seg.match(/^([A-Za-z_]\w*)\s*:\s*(.+)$/);
+    if (colon) return { name: colon[1], type: colon[2].trim() };
+    const csharp = seg.match(/^(.+?)\s+([A-Za-z_]\w*)$/);
+    if (csharp) return { name: csharp[2], type: csharp[1].trim() };
+    return { name: seg, type: '' };
+  });
+}
+
+function composeParams(rows: ParamRow[]): string {
+  return rows
+    .map(r => (r.name.trim() && r.type.trim() ? `${r.name.trim()}: ${r.type.trim()}` : `${r.name.trim()} ${r.type.trim()}`.trim()))
+    .filter(Boolean)
+    .join(', ');
+}
+
 export function openMemberEditor(nodeId: string, mid: string): void {
   closePopovers();
   const n = nodeById(nodeId);
@@ -141,7 +181,9 @@ export function openMemberEditor(nodeId: string, mid: string): void {
     </div>
     ${
       isMethod && !isEnum
-        ? '<input class="f-wide f-params" placeholder="parameters, e.g. dx: int, dy: int" value="' + esc(m.params ?? '') + '" />'
+        ? `<div class="p-label">Parameters</div>
+    <div class="param-rows"></div>
+    <button type="button" class="chip param-add">+ Add parameter</button>`
         : ''
     }
     ${isEnum ? '' : `<div class="chips">
@@ -158,7 +200,6 @@ export function openMemberEditor(nodeId: string, mid: string): void {
   const vis = el.querySelector<HTMLSelectElement>('.f-vis');
   const name = el.querySelector<HTMLInputElement>('.f-name');
   const type = el.querySelector<HTMLInputElement>('.f-type');
-  const params = el.querySelector<HTMLInputElement>('.f-params');
   const note = el.querySelector<HTMLTextAreaElement>('.f-note');
 
   const bind = (input: HTMLInputElement, fn: (v: string) => void): void => {
@@ -173,7 +214,6 @@ export function openMemberEditor(nodeId: string, mid: string): void {
   };
   if (name) bind(name, v => (m.name = v.trim()));
   if (type) bind(type, v => (m.type = v.trim()));
-  if (params) bind(params, v => (m.params = v.trim()));
   if (note) {
     note.addEventListener('input', () => {
       consumePendingPre();
@@ -189,7 +229,7 @@ export function openMemberEditor(nodeId: string, mid: string): void {
     vis.addEventListener('keydown', e => e.stopPropagation());
   }
 
-  el.querySelectorAll<HTMLButtonElement>('.chip').forEach(chip => {
+  el.querySelectorAll<HTMLButtonElement>('.chip[data-mod]').forEach(chip => {
     chip.addEventListener('click', () => {
       consumePendingPre();
       const mod = chip.dataset.mod ?? '';
@@ -199,6 +239,63 @@ export function openMemberEditor(nodeId: string, mid: string): void {
       chip.classList.toggle('is-active');
     });
   });
+
+  if (isMethod && !isEnum) {
+    const host = el.querySelector<HTMLDivElement>('.param-rows');
+    const addBtn = el.querySelector<HTMLButtonElement>('.param-add');
+    let rows: ParamRow[] = parseParams(m.params ?? '');
+    if (!rows.length) rows = [{ name: '', type: '' }];
+
+    const recompose = (): void => {
+      consumePendingPre();
+      m.params = composeParams(rows);
+    };
+
+    const buildRow = (r: ParamRow): HTMLDivElement => {
+      const row = document.createElement('div');
+      row.className = 'param-row';
+      row.innerHTML = `
+        <input class="f-name" placeholder="name" value="${esc(r.name)}" />
+        <input class="f-type" placeholder="type" value="${esc(r.type)}" />
+        <button type="button" class="param-x" title="Remove parameter">\u00D7</button>`;
+      const inputs = row.querySelectorAll<HTMLInputElement>('input');
+      const sync = (): void => {
+        r.name = inputs[0].value;
+        r.type = inputs[1].value;
+        recompose();
+      };
+      for (const inp of inputs) {
+        inp.addEventListener('input', sync);
+        inp.addEventListener('keydown', e => {
+          if (e.key === 'Enter') closePopovers();
+          e.stopPropagation();
+        });
+      }
+      row.querySelector('.param-x')?.addEventListener('click', () => {
+        consumePendingPre();
+        rows = rows.filter(x => x !== r);
+        row.remove();
+        if (!rows.length) {
+          const blank = { name: '', type: '' };
+          rows.push(blank);
+          host?.appendChild(buildRow(blank));
+        }
+        recompose();
+      });
+      return row;
+    };
+
+    for (const r of rows) host?.appendChild(buildRow(r));
+    addBtn?.addEventListener('click', () => {
+      consumePendingPre();
+      const r = { name: '', type: '' };
+      rows.push(r);
+      const row = buildRow(r);
+      host?.appendChild(row);
+      recompose();
+      row.querySelector<HTMLInputElement>('input')?.focus();
+    });
+  }
 
   el.querySelector('.p-del')?.addEventListener('click', () => {
     consumePendingPre();

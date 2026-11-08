@@ -961,6 +961,39 @@ svg .ref-accept:hover {
   width: 100%;
 }
 
+.param-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-row {
+  display: flex;
+  gap: 6px;
+}
+
+.param-row .f-name {
+  flex: 1;
+}
+
+.param-row .f-type {
+  flex: 1.6;
+}
+
+.param-x {
+  background: transparent;
+  border: none;
+  color: var(--muted-fg);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 4px;
+}
+
+.param-x:hover {
+  color: #dc2626;
+}
+
 .popover .p-label {
   font-size: 11px;
   color: var(--muted-fg);
