@@ -1,5 +1,8 @@
 # Devlog
 
+## 08.11.2026
+- Method editor rework: parameters are no longer one free-text input — each parameter is its own row (name + type inputs, same `f-name`/`f-type` pattern as the member row) with a per-row × remove and a `+ Add parameter` chip. The stored format is untouched: `parseParams` carves the canonical `"name: Type, name2: Type2"` string up on popover open, every edit recomposes rows → string, re-parse happens only on the next open so mid-typing is never mangled behind the user's back. Depth-aware comma split (generics like `Dictionary<string, int>` survive), UML `dx: int` and C#-order `int dx` both recognized, anything unparseable kept as a raw row (dropped only by explicit ×). New `.param-rows`/`.param-row`/`.param-x` styles; modifier chips are now selected via `.chip[data-mod]` so the add-parameter chip (which wears the same pill styling) is exempt. CLI, saved `.json` diagrams, diff/impl-diff matching and the layout budget are unaffected — a structured `params` array stays open as a future move if the CLI scaffold command wants it.
+
 ## 12.10.2026
 - Copy updates for the CLI rename: badge and save-warning texts now name the binary `artuml` (no theme/event-name changes).
 
