@@ -54,8 +54,10 @@ import {
   openEdgeEditor,
   openMemberEditor,
   openMenu,
+  openNodeDirEditor,
   openNodeNoteEditor,
   openProjectNotes,
+  openScaffoldDirEditor,
   setHint,
   startRename,
   toast,
@@ -271,6 +273,7 @@ function nodeMenu(nodeId: string, x: number, y: number): void {
   openMenu(x, y, [
     { label: 'Rename', action: () => startRename(nodeId) },
     { label: 'Edit note…', action: () => openNodeNoteEditor(nodeId) },
+    ...(embedded ? [{ label: 'Set directory…', action: () => openNodeDirEditor(nodeId) } as MenuItem] : []),
     '-',
     { label: attrLabel, action: () => addMember(nodeId, 'attributes') },
     ...(n && n.kind !== 'enum' ? [{ label: 'Add method', action: () => addMember(nodeId, 'methods') } as MenuItem] : []),
@@ -853,12 +856,26 @@ btnClear.addEventListener('click', () => {
 });
 (document.getElementById('zoom-fit') as HTMLButtonElement).addEventListener('click', fitView);
 
+interface EmbeddedPayload {
+  diagram?: SerializedDiagram;
+  pending?: PendingRef[];
+  implDiff?: ImplSync | null;
+}
+
+const embedded: EmbeddedPayload | undefined = (window as unknown as { __ARTISAN__?: EmbeddedPayload }).__ARTISAN__;
+
 const btnNotes = document.getElementById('btn-notes') as HTMLButtonElement;
 const btnAck = document.getElementById('btn-ack') as HTMLButtonElement;
 const btnConnect = document.getElementById('btn-connect') as HTMLButtonElement;
 const btnImpl = document.getElementById('btn-impl') as HTMLButtonElement;
 
 btnNotes.addEventListener('click', openProjectNotes);
+
+const btnDir = document.getElementById('btn-dir') as HTMLButtonElement;
+if (embedded) {
+  btnDir.style.display = '';
+  btnDir.addEventListener('click', () => void openScaffoldDirEditor());
+}
 
 btnConnect.addEventListener('click', async () => {
   try {
@@ -1211,16 +1228,7 @@ async function tryServerBoot(): Promise<boolean> {
   }
 }
 
-interface EmbeddedPayload {
-  diagram?: SerializedDiagram;
-  pending?: PendingRef[];
-  implDiff?: ImplSync | null;
-}
-
-const embedded: EmbeddedPayload | undefined = (window as unknown as { __ARTISAN__?: EmbeddedPayload }).__ARTISAN__;
-
-async function boot(): Promise<void> {
-  let fresh = true;
+async function boot(): Promise<void> {  let fresh = true;
   if (embedded?.diagram && Array.isArray(embedded.diagram.nodes)) {
     loadInto(embedded.diagram);
     state.aiPending = Array.isArray(embedded.pending) ? embedded.pending : [];

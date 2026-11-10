@@ -534,3 +534,105 @@ export function openProjectNotes(): void {
   };
   note?.focus();
 }
+
+export function openNodeDirEditor(nodeId: string): void {
+  closePopovers();
+  const n = nodeById(nodeId);
+  if (!n) return;
+  const nodeEl = nodesLayer.querySelector<HTMLElement>(`.node[data-id="${nodeId}"]`);
+  const rect = nodeEl?.getBoundingClientRect();
+  pendingPre.current = serialize();
+
+  const el = document.createElement('div');
+  el.className = 'popover';
+  el.innerHTML = `
+    <div class="p-label">Directory of ${esc(n.name || '(unnamed)')}</div>
+    <input type="text" class="f-wide f-dir" placeholder="e.g. src/Combat — project-root relative, blank = default">
+    <div class="actions">
+      <span class="p-hint">artuml scaffold creates/moves this type&rsquo;s file there</span>
+      <button class="p-btn p-del">Clear</button>
+      <button class="p-btn p-done">Done</button>
+    </div>`;
+
+  const input = el.querySelector<HTMLInputElement>('.f-dir');
+  if (input) {
+    input.value = n.dir ?? '';
+    input.addEventListener('input', () => {
+      consumePendingPre();
+      n.dir = input.value.trim() || undefined;
+    });
+    input.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter') closePopovers();
+    });
+  }
+  el.querySelector('.p-del')?.addEventListener('click', () => {
+    consumePendingPre();
+    n.dir = undefined;
+    if (input) input.value = '';
+    renderAll();
+    save();
+  });
+  el.querySelector('.p-done')?.addEventListener('click', () => closePopovers());
+
+  el.addEventListener('mousedown', e => e.stopPropagation());
+  positionPopover(el, rect ? rect.left : 100, rect ? rect.bottom + 6 : 100);
+  activePopoverRef.current = {
+    el,
+    close: () => {
+      renderAll();
+      save();
+    },
+  };
+  input?.focus();
+}
+
+export async function openScaffoldDirEditor(): Promise<void> {
+  closePopovers();
+  let current = '';
+  try {
+    const r = await fetch('/api/config');
+    if (r.ok) current = (await r.json()).scaffoldDir ?? '';
+  } catch {
+    /* no serve process (embedded file:// mode) */
+  }
+
+  const el = document.createElement('div');
+  el.className = 'popover';
+  el.innerHTML = `
+    <div class="p-label">Scaffold directory</div>
+    <input type="text" class="f-wide f-dir" placeholder="e.g. src — where new types are created">
+    <div class="actions">
+      <span class="p-hint">Project-root relative — per-node dirs (right-click) win over this</span>
+      <button class="p-btn p-done">Done</button>
+    </div>`;
+
+  const input = el.querySelector<HTMLInputElement>('.f-dir');
+  if (input) {
+    input.value = current;
+    input.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter') closePopovers();
+    });
+  }
+  el.querySelector('.p-done')?.addEventListener('click', () => closePopovers());
+
+  el.addEventListener('mousedown', e => e.stopPropagation());
+  positionPopover(el, Math.max(16, window.innerWidth / 2 - 145), 60);
+  const commit = async () => {
+    const val = input?.value.trim() ?? '';
+    try {
+      const r = await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scaffoldDir: val }),
+      });
+      if (r.ok) toast('Scaffold directory saved');
+      else toast((await r.json()).error ?? 'Invalid directory');
+    } catch {
+      toast('Config needs artuml serve');
+    }
+  };
+  activePopoverRef.current = { el, close: () => void commit() };
+  input?.focus();
+}
