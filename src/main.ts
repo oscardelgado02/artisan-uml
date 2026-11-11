@@ -273,7 +273,7 @@ function nodeMenu(nodeId: string, x: number, y: number): void {
   openMenu(x, y, [
     { label: 'Rename', action: () => startRename(nodeId) },
     { label: 'Edit note…', action: () => openNodeNoteEditor(nodeId) },
-    ...(embedded ? [{ label: 'Set directory…', action: () => openNodeDirEditor(nodeId) } as MenuItem] : []),
+    ...((embedded || serverRef.current) ? [{ label: 'Set directory…', action: () => openNodeDirEditor(nodeId) } as MenuItem] : []),
     '-',
     { label: attrLabel, action: () => addMember(nodeId, 'attributes') },
     ...(n && n.kind !== 'enum' ? [{ label: 'Add method', action: () => addMember(nodeId, 'methods') } as MenuItem] : []),
@@ -872,10 +872,8 @@ const btnImpl = document.getElementById('btn-impl') as HTMLButtonElement;
 btnNotes.addEventListener('click', openProjectNotes);
 
 const btnDir = document.getElementById('btn-dir') as HTMLButtonElement;
-if (embedded) {
-  btnDir.style.display = '';
-  btnDir.addEventListener('click', () => void openScaffoldDirEditor());
-}
+if (embedded) btnDir.style.display = '';
+btnDir.addEventListener('click', () => void openScaffoldDirEditor());
 
 btnConnect.addEventListener('click', async () => {
   try {
@@ -1288,6 +1286,7 @@ async function boot(): Promise<void> {  let fresh = true;
     renderAll();
     applyCam();
     btnConnect.style.display = 'none';
+    btnDir.style.display = '';
     toast('Synced with artuml server');
   }
 }

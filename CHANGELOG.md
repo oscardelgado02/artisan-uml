@@ -4,8 +4,8 @@
 
 ### Added
 - Class directory targeting for `artuml scaffold` (contract unchanged at 2): right-click **Set directory…** next to **Edit note…** sets/clears the per-node `dir` (project-root-relative folder where the CLI creates/moves the class file); a **Dir** toolbar button edits the global `scaffoldDir` config.
-- Embedded-mode only: both controls appear when `window.__ARTISAN__` is present; the static web editor is unaffected, the `file://` embedded editor shows the button disabled.
-- The **Dir** button is served-mode only and edits the config live through the CLI's new `GET/PUT /api/config`.
+- Both controls appear in the embedded editor (`window.__ARTISAN__` present) and the served editor (gated on a live `/api` server after boot); the static web editor is unaffected, the `file://` embedded editor shows the button disabled.
+- The **Dir** button edits `scaffoldDir` live through the CLI's `GET/PUT /api/config`; per-node dirs persist through the served editor's normal `PUT /api/diagram` save.
 - `UmlNode.dir?: string` in the model; unknown node fields already survived serialization, so the CLI round-trips `dir` untouched.
 
 ## 1.2.2 — 20.10.2026
