@@ -547,9 +547,9 @@ export function openNodeDirEditor(nodeId: string): void {
   el.className = 'popover';
   el.innerHTML = `
     <div class="p-label">Directory of ${esc(n.name || '(unnamed)')}</div>
-    <input type="text" class="f-wide f-dir" placeholder="e.g. src/Combat — project-root relative, blank = default">
+    <input type="text" class="f-wide f-dir" placeholder="e.g. Combat — relative to the default dir, blank = default">
     <div class="actions">
-      <span class="p-hint">artuml scaffold creates/moves this type&rsquo;s file there</span>
+      <span class="p-hint">artuml scaffold creates/moves this type&rsquo;s file under the default dir + this</span>
       <button class="p-btn p-del">Clear</button>
       <button class="p-btn p-done">Done</button>
     </div>`;
@@ -601,9 +601,9 @@ export async function openScaffoldDirEditor(): Promise<void> {
   el.className = 'popover';
   el.innerHTML = `
     <div class="p-label">Scaffold directory</div>
-    <input type="text" class="f-wide f-dir" placeholder="e.g. src — where new types are created">
+    <input type="text" class="f-wide f-dir" placeholder="e.g. src — the ROOT where all files live">
     <div class="actions">
-      <span class="p-hint">Project-root relative — per-node dirs (right-click) win over this</span>
+      <span class="p-hint">Relative to the project — per-node dirs (right-click) are relative to this</span>
       <button class="p-btn p-done">Done</button>
     </div>`;
 
