@@ -776,6 +776,18 @@ svg .ref-accept:hover {
   z-index: 2;
 }
 
+.note-glyph.node-dir {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  z-index: 2;
+}
+
+.note-glyph.node-dir svg {
+  display: block;
+  margin-top: 2px; /* text glyphs sit on a baseline; align the SVG's ink with the pencil's */
+}
+
 .btn.ack {
   background-color: var(--ai-change);
   border-color: var(--ai-change);

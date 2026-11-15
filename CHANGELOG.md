@@ -11,6 +11,7 @@
 - Both controls appear in the embedded editor (`window.__ARTISAN__` present) and the served editor (gated on a live `/api` server after boot); the static web editor is unaffected, the `file://` embedded editor shows the button disabled.
 - The **Dir** button edits `scaffoldDir` live through the CLI's `GET/PUT /api/config`; per-node dirs persist through the served editor's normal `PUT /api/diagram` save.
 - `UmlNode.dir?: string` in the model; unknown node fields already survived serialization, so the CLI round-trips `dir` untouched.
+- Custom-directory badge: a node with a `dir` shows a small folder icon in the head's top-right corner, styled exactly like the note glyph (same `--mod-purple` color and size, inline SVG so it ignores platform emoji fonts) with the directory as hover title; a note glyph shifts left so both coexist. No serialization change (contract stays 2).
 
 ### Fixed
 - The served editor no longer flags the human's **own** edits as unreviewed "AI changes": out-of-order responses (a 5s poll GET racing the autosave PUT, or an older PUT response landing late) could regress the editor's last-disk baseline, making the next poll see the editor's own additions as external changes — amber highlights + toast + permanently queued refs until acked, and a stale `If-Match` (409 → stale-tab reload) as a worse sibling. Disk snapshots are now rev-guarded: only a strictly newer `X-Artisan-Rev` is diffed, snapshots never regress (`src/disk-watch/`, contract unchanged at 2).
