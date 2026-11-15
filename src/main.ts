@@ -870,13 +870,12 @@ const searchCount = document.getElementById('search-count') as HTMLSpanElement;
 const searchPrev = document.getElementById('search-prev') as HTMLButtonElement;
 const searchNext = document.getElementById('search-next') as HTMLButtonElement;
 
+const searchCtrl = document.getElementById('search-ctrl') as HTMLDivElement;
+
 function syncSearchControls(): void {
-  const active = searchActive();
-  searchCount.hidden = !active;
-  searchPrev.hidden = !active;
-  searchNext.hidden = !active;
+  searchCtrl.classList.toggle('active', searchActive());
   const n = search.stops.length;
-  searchCount.textContent = n ? `${search.idx + 1} of ${n}` : 'no matches';
+  searchCount.textContent = n ? `${search.idx + 1}/${n}` : '0/0';
   searchPrev.disabled = !n;
   searchNext.disabled = !n;
 }
