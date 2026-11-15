@@ -67,4 +67,15 @@ assert.equal(S.matchesTokens([], 'anything'), false, 'empty query matches nothin
 assert.equal(S.searchableText(['Name', null, 'int', '']), 'name int', 'searchableText joins + lowercases');
 console.log('  ok - search-core matcher: tokenize, AND semantics, case-insensitive');
 
+// Disk-revision guard (disk-watch.mjs — keeps the served editor's disk snapshot
+// from regressing: own saves never re-flagged, If-Match never goes stale)
+const D = await import(new URL('src/disk-watch/core.mjs', here).href);
+assert.equal(D.diskState(5, 4), 'fresh', 'newer rev = fresh');
+assert.equal(D.diskState(4, 4), 'same', 'equal rev = same (skip diff)');
+assert.equal(D.diskState(3, 4), 'stale', 'older rev = stale (out-of-order response ignored)');
+assert.equal(D.diskState(0, 4), 'stale', 'missing rev on a tracked session = stale');
+assert.equal(D.diskState(4, 0), 'fresh', 'first look at disk = fresh');
+assert.equal(D.diskState(0, 0), 'same', 'zero vs zero = same');
+console.log('  ok - disk-watch: fresh/same/stale rev guard');
+
 console.log('\nAll editor contract checks passed.');

@@ -44,6 +44,7 @@ import {
   undo,
   updateUndoButtons,
 } from './storage';
+import { diskState } from './disk-watch';
 import { tidyAll } from './tidy';
 import type { SerializedDiagram } from './storage';
 import {
@@ -1064,8 +1065,14 @@ async function refreshPending(): Promise<void> {
     // external diagram changes (CLI add/edit/remove while serving)
     const diskRes = await fetch('/api/diagram');
     if (diskRes.ok && serverDiskRef.current) {
+      // only a strictly newer disk state is worth diffing — an out-of-order
+      // response here would regress serverDiskRef/Rev and flag the editor's
+      // OWN saves as external changes (and stale the next PUT's If-Match)
+      const knownRev = serverDiskRev.current;
+      const respRev = Number(diskRes.headers.get('X-Artisan-Rev')) || 0;
+      if (diskState(respRev, knownRev) !== 'fresh') return;
       const disk = (await diskRes.json()) as SerializedDiagram;
-      serverDiskRev.current = Number(diskRes.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
+      serverDiskRev.current = respRev;
       if (Array.isArray(disk.nodes)) {
         const fresh = freshDiskRefs(serverDiskRef.current, disk);
         serverDiskRef.current = disk;

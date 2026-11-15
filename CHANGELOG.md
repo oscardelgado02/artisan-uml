@@ -12,6 +12,9 @@
 - The **Dir** button edits `scaffoldDir` live through the CLI's `GET/PUT /api/config`; per-node dirs persist through the served editor's normal `PUT /api/diagram` save.
 - `UmlNode.dir?: string` in the model; unknown node fields already survived serialization, so the CLI round-trips `dir` untouched.
 
+### Fixed
+- The served editor no longer flags the human's **own** edits as unreviewed "AI changes": out-of-order responses (a 5s poll GET racing the autosave PUT, or an older PUT response landing late) could regress the editor's last-disk baseline, making the next poll see the editor's own additions as external changes — amber highlights + toast + permanently queued refs until acked, and a stale `If-Match` (409 → stale-tab reload) as a worse sibling. Disk snapshots are now rev-guarded: only a strictly newer `X-Artisan-Rev` is diffed, snapshots never regress (`src/disk-watch/`, contract unchanged at 2).
+
 ## 1.2.2 — 20.10.2026
 
 ### Fixed
