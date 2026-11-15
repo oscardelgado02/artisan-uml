@@ -44,6 +44,7 @@ import {
   undo,
   updateUndoButtons,
 } from './storage';
+import { diskState } from './disk-watch';
 import { tidyAll } from './tidy';
 import type { SerializedDiagram } from './storage';
 import {
@@ -54,13 +55,17 @@ import {
   openEdgeEditor,
   openMemberEditor,
   openMenu,
+  openNodeDirEditor,
   openNodeNoteEditor,
   openProjectNotes,
+  openScaffoldDirEditor,
   setHint,
   startRename,
   toast,
 } from './editors';
 import { copyPlantUML, downloadPlantUML, exportJSON, importJSONFile } from './exporters';
+import { computeSearch, search, searchActive } from './search';
+import type { Stop } from './search';
 import type { MenuEntry, MenuItem } from './types';
 import type { PendingRef } from './model';
 import { acceptedKeys, rejectedKeys, refKey } from './model';
@@ -271,6 +276,7 @@ function nodeMenu(nodeId: string, x: number, y: number): void {
   openMenu(x, y, [
     { label: 'Rename', action: () => startRename(nodeId) },
     { label: 'Edit note…', action: () => openNodeNoteEditor(nodeId) },
+    ...((embedded || serverRef.current) ? [{ label: 'Set directory…', action: () => openNodeDirEditor(nodeId) } as MenuItem] : []),
     '-',
     { label: attrLabel, action: () => addMember(nodeId, 'attributes') },
     ...(n && n.kind !== 'enum' ? [{ label: 'Add method', action: () => addMember(nodeId, 'methods') } as MenuItem] : []),
@@ -722,6 +728,12 @@ document.addEventListener('keydown', e => {
     return;
   }
   const mod = e.ctrlKey || e.metaKey;
+  if (e.key === '/' || (mod && e.key.toLowerCase() === 'f')) {
+    e.preventDefault();
+    searchBox.focus();
+    searchBox.select();
+    return;
+  }
   if (e.key === 'Escape') {
     closePopovers();
     cancelLinkMode();
@@ -853,12 +865,89 @@ btnClear.addEventListener('click', () => {
 });
 (document.getElementById('zoom-fit') as HTMLButtonElement).addEventListener('click', fitView);
 
+// ---- search box: live filter/highlight + ↑/↓ match cycling -----------------
+const searchBox = document.getElementById('search-box') as HTMLInputElement;
+const searchCount = document.getElementById('search-count') as HTMLSpanElement;
+const searchPrev = document.getElementById('search-prev') as HTMLButtonElement;
+const searchNext = document.getElementById('search-next') as HTMLButtonElement;
+
+const searchCtrl = document.getElementById('search-ctrl') as HTMLDivElement;
+
+function syncSearchControls(): void {
+  searchCtrl.classList.toggle('active', searchActive());
+  const n = search.stops.length;
+  searchCount.textContent = n ? `${search.idx + 1}/${n}` : '0/0';
+  searchPrev.disabled = !n;
+  searchNext.disabled = !n;
+}
+
+function applySearch(): void {
+  computeSearch(searchBox.value);
+  renderAll();
+  syncSearchControls();
+}
+
+// Pan (no zoom) so the stop sits in the middle of the canvas.
+function panToStop(stop: Stop): void {
+  let el: Element | null = null;
+  if (stop.kind === 'node') el = nodesLayer.querySelector(`.node[data-id="${stop.id}"]`);
+  else if (stop.kind === 'member') el = nodesLayer.querySelector(`.member[data-mid="${stop.id}"]`);
+  else el = document.querySelector(`#edge-paths .edge-g[data-id="${stop.id}"]`);
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  const tl = toCanvas(r.left, r.top);
+  const cx = tl.x + r.width / (2 * state.cam.z);
+  const cy = tl.y + r.height / (2 * state.cam.z);
+  state.cam.x = wr.width / 2 - cx * state.cam.z;
+  state.cam.y = wr.height / 2 - cy * state.cam.z;
+  applyCam();
+  saveThrottled();
+}
+
+function gotoStop(dir: 1 | -1): void {
+  if (!search.stops.length) return;
+  search.idx = (search.idx + dir + search.stops.length) % search.stops.length;
+  renderAll();
+  panToStop(search.stops[search.idx]);
+  syncSearchControls();
+}
+
+searchBox.addEventListener('input', applySearch);
+searchBox.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    searchBox.value = '';
+    applySearch();
+    searchBox.blur();
+  } else if (e.key === 'Enter') {
+    gotoStop(e.shiftKey ? -1 : 1);
+  }
+});
+searchPrev.addEventListener('mousedown', e => e.preventDefault()); // keep focus in the box
+searchNext.addEventListener('mousedown', e => e.preventDefault());
+searchPrev.addEventListener('click', () => gotoStop(-1));
+searchNext.addEventListener('click', () => gotoStop(1));
+
+interface EmbeddedPayload {
+  diagram?: SerializedDiagram;
+  pending?: PendingRef[];
+  implDiff?: ImplSync | null;
+}
+
+const embedded: EmbeddedPayload | undefined = (window as unknown as { __ARTISAN__?: EmbeddedPayload }).__ARTISAN__;
+
 const btnNotes = document.getElementById('btn-notes') as HTMLButtonElement;
 const btnAck = document.getElementById('btn-ack') as HTMLButtonElement;
 const btnConnect = document.getElementById('btn-connect') as HTMLButtonElement;
 const btnImpl = document.getElementById('btn-impl') as HTMLButtonElement;
 
 btnNotes.addEventListener('click', openProjectNotes);
+
+const btnDir = document.getElementById('btn-dir') as HTMLButtonElement;
+if (embedded) btnDir.style.display = '';
+btnDir.addEventListener('click', () => void openScaffoldDirEditor());
 
 btnConnect.addEventListener('click', async () => {
   try {
@@ -976,8 +1065,14 @@ async function refreshPending(): Promise<void> {
     // external diagram changes (CLI add/edit/remove while serving)
     const diskRes = await fetch('/api/diagram');
     if (diskRes.ok && serverDiskRef.current) {
+      // only a strictly newer disk state is worth diffing — an out-of-order
+      // response here would regress serverDiskRef/Rev and flag the editor's
+      // OWN saves as external changes (and stale the next PUT's If-Match)
+      const knownRev = serverDiskRev.current;
+      const respRev = Number(diskRes.headers.get('X-Artisan-Rev')) || 0;
+      if (diskState(respRev, knownRev) !== 'fresh') return;
       const disk = (await diskRes.json()) as SerializedDiagram;
-      serverDiskRev.current = Number(diskRes.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
+      serverDiskRev.current = respRev;
       if (Array.isArray(disk.nodes)) {
         const fresh = freshDiskRefs(serverDiskRef.current, disk);
         serverDiskRef.current = disk;
@@ -1211,16 +1306,7 @@ async function tryServerBoot(): Promise<boolean> {
   }
 }
 
-interface EmbeddedPayload {
-  diagram?: SerializedDiagram;
-  pending?: PendingRef[];
-  implDiff?: ImplSync | null;
-}
-
-const embedded: EmbeddedPayload | undefined = (window as unknown as { __ARTISAN__?: EmbeddedPayload }).__ARTISAN__;
-
-async function boot(): Promise<void> {
-  let fresh = true;
+async function boot(): Promise<void> {  let fresh = true;
   if (embedded?.diagram && Array.isArray(embedded.diagram.nodes)) {
     loadInto(embedded.diagram);
     state.aiPending = Array.isArray(embedded.pending) ? embedded.pending : [];
@@ -1280,6 +1366,7 @@ async function boot(): Promise<void> {
     renderAll();
     applyCam();
     btnConnect.style.display = 'none';
+    btnDir.style.display = '';
     toast('Synced with artuml server');
   }
 }

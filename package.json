@@ -1,6 +1,6 @@
 {
   "name": "artisan-uml",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Artisan UML \u2014 A fast, fluid UML class diagram editor for the web: click-to-add members, live UML relations, no framework.",
   "type": "module",
   "license": "MIT",

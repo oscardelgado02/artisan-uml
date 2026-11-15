@@ -24,6 +24,8 @@ html {
   --mod-purple: #7c3aed;
   --ai-change: #f59e0b;
   --ai-change-bg: rgba(245, 158, 11, 0.15);
+  --search-match: #65a30d;
+  --search-match-bg: rgba(101, 163, 13, 0.18);
 }
 
 html {
@@ -57,6 +59,8 @@ html.dark {
   --mod-purple: #a78bfa;
   --ai-change: #f59e0b;
   --ai-change-bg: rgba(245, 158, 11, 0.18);
+  --search-match: #a3e635;
+  --search-match-bg: rgba(163, 230, 53, 0.18);
 }
 
 /* Palette: Developer (violet neon). */
@@ -241,7 +245,7 @@ button {
 #toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 14px;
   border-bottom: 1px solid var(--node-sep);
   background: var(--background);
@@ -277,6 +281,52 @@ button {
 
 .tb-spacer {
   flex: 1;
+}
+
+/* search box: filters/highlights nodes, member rows, edges — styled like .btn */
+#search-ctrl input {
+  width: 150px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--secondary-border);
+  background: transparent;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, background-color 0.2s ease-out;
+}
+
+#search-ctrl input::placeholder {
+  color: var(--muted-fg);
+  font-weight: 400;
+}
+
+#search-ctrl input:focus {
+  border-color: var(--search-match);
+  box-shadow: 0 0 0 3px var(--search-match-bg);
+}
+
+#search-count {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted-fg);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* counter + arrows reserve their space always; visibility toggles with use */
+#search-count,
+#search-prev,
+#search-next {
+  visibility: hidden;
+}
+
+#search-ctrl.active #search-count,
+#search-ctrl.active #search-prev,
+#search-ctrl.active #search-next {
+  visibility: visible;
 }
 
 .btn {
@@ -580,6 +630,58 @@ a.btn {
   stroke: var(--ai-change);
 }
 
+/* search hits: lime ring — distinct from amber (amber = unreviewed AI edits) */
+.node.search-match {
+  border-color: var(--search-match);
+  box-shadow: 0 0 0 3px var(--search-match-bg);
+}
+
+.node.search-dim,
+.edge-g.search-dim {
+  opacity: 0.25;
+}
+
+.member.search-match {
+  background-color: var(--search-match-bg);
+}
+
+.edge-g.search-match .edge-line {
+  stroke: var(--search-match);
+}
+
+.edge-g.search-match .mk-stroke {
+  stroke: var(--search-match);
+}
+
+.edge-g.search-match .edge-label {
+  fill: var(--search-match);
+}
+
+/* current cycle stop: strong ring + pulse; SVG lines get a thicker stroke */
+.node.search-current {
+  box-shadow: 0 0 0 4px var(--search-match);
+  animation: search-pulse 0.6s ease-out;
+}
+
+.member.search-current {
+  outline: 2px solid var(--search-match);
+  outline-offset: 1px;
+}
+
+.edge-g.search-current .edge-line {
+  stroke: var(--search-match);
+  stroke-width: 3;
+}
+
+@keyframes search-pulse {
+  0% {
+    box-shadow: 0 0 0 10px var(--search-match-bg);
+  }
+  100% {
+    box-shadow: 0 0 0 4px var(--search-match);
+  }
+}
+
 /* per-item accept chip (amber highlights accepted individually) */
 .ref-accept {
   flex: none;
@@ -672,6 +774,18 @@ svg .ref-accept:hover {
   top: 7px;
   right: 10px;
   z-index: 2;
+}
+
+.note-glyph.node-dir {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  z-index: 2;
+}
+
+.note-glyph.node-dir svg {
+  display: block;
+  margin-top: 2px; /* text glyphs sit on a baseline; align the SVG's ink with the pencil's */
 }
 
 .btn.ack {
@@ -959,6 +1073,39 @@ svg .ref-accept:hover {
 
 .popover .f-wide {
   width: 100%;
+}
+
+.param-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-row {
+  display: flex;
+  gap: 6px;
+}
+
+.param-row .f-name {
+  flex: 1;
+}
+
+.param-row .f-type {
+  flex: 1.6;
+}
+
+.param-x {
+  background: transparent;
+  border: none;
+  color: var(--muted-fg);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 4px;
+}
+
+.param-x:hover {
+  color: #dc2626;
 }
 
 .popover .p-label {

@@ -1,6 +1,7 @@
 import { state } from './model';
 import type { Camera, EdgeStyle, UmlEdge, UmlNode } from './model';
 import { applyCam, renderAll, syncColorize } from './render';
+import { diskState } from './disk-watch';
 
 export const LS_KEY = 'wise-uml-v1';
 
@@ -66,9 +67,11 @@ function putToServer(): void {
           try {
             const fresh = await fetch('/api/diagram');
             if (fresh.ok) {
+              const freshRev = Number(fresh.headers.get('X-Artisan-Rev')) || 0;
+              if (diskState(freshRev, serverDiskRev.current) === 'stale') return;
               const data = await fresh.json();
               serverDiskRef.current = data;
-              serverDiskRev.current = Number(fresh.headers.get('X-Artisan-Rev')) || serverDiskRev.current;
+              serverDiskRev.current = freshRev || serverDiskRev.current;
               window.dispatchEvent(new CustomEvent('artisan-disk-conflict', { detail: data }));
               return;
             }
@@ -79,7 +82,10 @@ function putToServer(): void {
         }
         try {
           const body = await res.json();
-          if (body?.rev) serverDiskRev.current = body.rev;
+          const rev = body?.rev ?? 0;
+          // apply only if this response isn't older than a state we already have
+          if (diskState(rev, serverDiskRev.current) === 'stale') return;
+          if (rev) serverDiskRev.current = rev;
           serverDiskRef.current = JSON.parse(serialize()) as SerializedDiagram;
         } catch {
           /* ignore */

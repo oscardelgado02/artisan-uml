@@ -12,6 +12,23 @@ import {
   state,
 } from './model';
 import type { Member, MemberSection, PendingRef, UmlEdge, UmlNode } from './model';
+import { search, searchActive } from './search';
+import type { Stop } from './search';
+
+// Search classes: dim non-matching, ring matches, spotlight the current stop.
+function searchClasses(hits: boolean, undim: boolean, current: boolean): string {
+  if (!searchActive()) return '';
+  let cls = '';
+  if (hits) cls += ' search-match';
+  else if (!undim) cls += ' search-dim';
+  if (current) cls += ' search-current';
+  return cls;
+}
+
+function isCurrentStop(kind: Stop['kind'], id: string): boolean {
+  const s = search.stops[search.idx];
+  return !!s && s.kind === kind && s.id === id;
+}
 
 const wrap = document.getElementById('canvas-wrap') as HTMLDivElement;
 const viewport = document.getElementById('viewport') as HTMLDivElement;
@@ -172,7 +189,10 @@ export function syncColorize(): void {
 
 function memberRow(n: UmlNode, m: Member, key: MemberSection): HTMLDivElement {
   const row = document.createElement('div');
-  row.className = 'member' + (isPending('member', m.id) ? ' ai-change' : '');
+  row.className =
+    'member' +
+    (isPending('member', m.id) ? ' ai-change' : '') +
+    searchClasses(search.memberHits.has(m.id), false, isCurrentStop('member', m.id));
   row.dataset.mid = m.id;
   if (m.note) row.title = m.note;
   const isEnum = n.kind === 'enum';
@@ -228,7 +248,8 @@ export function renderNodes(): void {
       n.kind +
       (selNode(n.id) ? ' selected' : '') +
       (state.linkFrom === n.id ? ' link-source' : '') +
-      (isPending('node', n.id) ? ' ai-change' : '');
+      (isPending('node', n.id) ? ' ai-change' : '') +
+      searchClasses(search.nodeHits.has(n.id), search.undimNodes.has(n.id), isCurrentStop('node', n.id));
     el.dataset.id = n.id;
     el.style.left = n.x + 'px';
     el.style.top = n.y + 'px';
@@ -238,7 +259,15 @@ export function renderNodes(): void {
     head.className = 'node-head';
     const stereo = KINDS[n.kind]?.stereo ?? '';
     head.innerHTML =
-      (n.note ? '<span class="note-glyph node-note" title="' + esc(n.note) + '">\u270E</span>' : '') +
+      (n.note
+        ? '<span class="note-glyph node-note"' +
+          (n.dir ? ' style="right:26px"' : '') +
+          ' title="' + esc(n.note) + '">\u270E</span>'
+        : '') +
+      (n.dir
+        ? '<span class="note-glyph node-dir" title="dir: ' + esc(n.dir) + '">' +
+          '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span>'
+        : '') +
       (stereo ? `<div class="stereo">${esc(stereo)}</div>` : '') +
       `<div class="node-name" data-role="name">${
         n.name ? esc(n.name) : '<span class="unnamed">(unnamed)</span>'
@@ -311,7 +340,9 @@ function renderGhostNodes(): void {
     const g = r.ghost as unknown as UmlNode;
     const pos = ghostNodePos(r, key);
     const el = document.createElement('div');
-    el.className = 'node ghost kind-' + g.kind;
+    el.className =
+      'node ghost kind-' + g.kind +
+      searchClasses(search.nodeHits.has(r.id), search.nodeHits.has(r.id), isCurrentStop('node', r.id));
     el.style.left = pos.x + 'px';
     el.style.top = pos.y + 'px';
     const head = document.createElement('div');
@@ -413,6 +444,12 @@ function renderGhostEdges(): void {
     if (!a || !b) continue; // endpoint missing entirely — nothing to anchor to
     const gj = svgEl('g') as SVGGElement;
     gj.classList.add('edge-g', 'ai-change', 'removed');
+    gj.dataset.id = r.id;
+    if (searchActive()) {
+      if (search.edgeHits.has(r.id)) gj.classList.add('search-match');
+      else gj.classList.add('search-dim');
+      if (isCurrentStop('edge', r.id)) gj.classList.add('search-current');
+    }
     const line = svgEl('path') as SVGPathElement;
     line.setAttribute('class', 'edge-line');
     line.setAttribute('d', `M ${a.x + a.w / 2} ${a.y + a.h / 2} L ${b.x + b.w / 2} ${b.y + b.h / 2}`);
@@ -888,6 +925,11 @@ export function renderEdges(): void {
     g.dataset.id = e.id;
     if (selEdge(e.id)) g.classList.add('selected');
     if (isPending('edge', e.id)) g.classList.add('ai-change');
+    if (searchActive()) {
+      if (search.edgeHits.has(e.id)) g.classList.add('search-match');
+      else g.classList.add('search-dim');
+      if (isCurrentStop('edge', e.id)) g.classList.add('search-current');
+    }
     if (e.note) {
       const t = svgEl('title') as SVGTitleElement;
       t.textContent = e.note;

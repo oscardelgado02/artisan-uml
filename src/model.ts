@@ -84,6 +84,7 @@ export interface UmlNode {
   attributes: Member[];
   methods: Member[];
   note?: string;
+  dir?: string;
   _w?: number;
   _h?: number;
 }

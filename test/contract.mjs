@@ -57,4 +57,32 @@ const node = block('.node');
 assert.match(node, new RegExp(`max-width:\\s*${C.NODE_MAX_PX}px`), '.node max-width matches NODE_MAX_PX');
 console.log('  ok - CSS contract: name/params wrap, locked parts nowrap, node cap matches constants');
 
+// Dir glyph badge: same corner slot as the note glyph (custom-directory marker)
+const ndir = block('.note-glyph.node-dir');
+assert.match(ndir, /position:\s*absolute/, '.node-dir badge is absolutely positioned');
+assert.match(ndir, /top:\s*7px/, '.node-dir badge top matches node-note');
+assert.match(ndir, /right:\s*10px/, '.node-dir badge right matches node-note');
+console.log('  ok - CSS contract: dir glyph badge mirrors node-note placement');
+
+// Search matcher contract (src/search-core.mjs — the pure half of the search box)
+const S = await import(new URL('src/search/core.mjs', here).href);
+assert.deepEqual(S.tokenize(' Foo  bar '), ['foo', 'bar'], 'tokenize splits + lowercases');
+assert.equal(S.matchesTokens(['foo', 'bar'], 'getfoo(bar): int'), true, 'AND: all tokens match');
+assert.equal(S.matchesTokens(['foo', 'bar'], 'getfoo: int'), false, 'AND: one missing token fails');
+assert.equal(S.matchesTokens(['FOO'], 'getfoo'), true, 'matches are case-insensitive');
+assert.equal(S.matchesTokens([], 'anything'), false, 'empty query matches nothing');
+assert.equal(S.searchableText(['Name', null, 'int', '']), 'name int', 'searchableText joins + lowercases');
+console.log('  ok - search-core matcher: tokenize, AND semantics, case-insensitive');
+
+// Disk-revision guard (disk-watch.mjs — keeps the served editor's disk snapshot
+// from regressing: own saves never re-flagged, If-Match never goes stale)
+const D = await import(new URL('src/disk-watch/core.mjs', here).href);
+assert.equal(D.diskState(5, 4), 'fresh', 'newer rev = fresh');
+assert.equal(D.diskState(4, 4), 'same', 'equal rev = same (skip diff)');
+assert.equal(D.diskState(3, 4), 'stale', 'older rev = stale (out-of-order response ignored)');
+assert.equal(D.diskState(0, 4), 'stale', 'missing rev on a tracked session = stale');
+assert.equal(D.diskState(4, 0), 'fresh', 'first look at disk = fresh');
+assert.equal(D.diskState(0, 0), 'same', 'zero vs zero = same');
+console.log('  ok - disk-watch: fresh/same/stale rev guard');
+
 console.log('\nAll editor contract checks passed.');
