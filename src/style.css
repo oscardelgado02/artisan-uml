@@ -24,6 +24,8 @@ html {
   --mod-purple: #7c3aed;
   --ai-change: #f59e0b;
   --ai-change-bg: rgba(245, 158, 11, 0.15);
+  --search-match: #65a30d;
+  --search-match-bg: rgba(101, 163, 13, 0.18);
 }
 
 html {
@@ -57,6 +59,8 @@ html.dark {
   --mod-purple: #a78bfa;
   --ai-change: #f59e0b;
   --ai-change-bg: rgba(245, 158, 11, 0.18);
+  --search-match: #a3e635;
+  --search-match-bg: rgba(163, 230, 53, 0.18);
 }
 
 /* Palette: Developer (violet neon). */
@@ -277,6 +281,31 @@ button {
 
 .tb-spacer {
   flex: 1;
+}
+
+/* search box: filters/highlights nodes, member rows, edges */
+#search-ctrl input {
+  width: 180px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--secondary-border);
+  background: var(--card-bg);
+  color: var(--foreground);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+#search-ctrl input:focus {
+  border-color: var(--search-match);
+  box-shadow: 0 0 0 3px var(--search-match-bg);
+}
+
+#search-count {
+  font-size: 12px;
+  color: var(--muted-fg);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .btn {
@@ -578,6 +607,58 @@ a.btn {
 
 .edge-g.ai-change .mk-stroke {
   stroke: var(--ai-change);
+}
+
+/* search hits: lime ring — distinct from amber (amber = unreviewed AI edits) */
+.node.search-match {
+  border-color: var(--search-match);
+  box-shadow: 0 0 0 3px var(--search-match-bg);
+}
+
+.node.search-dim,
+.edge-g.search-dim {
+  opacity: 0.25;
+}
+
+.member.search-match {
+  background-color: var(--search-match-bg);
+}
+
+.edge-g.search-match .edge-line {
+  stroke: var(--search-match);
+}
+
+.edge-g.search-match .mk-stroke {
+  stroke: var(--search-match);
+}
+
+.edge-g.search-match .edge-label {
+  fill: var(--search-match);
+}
+
+/* current cycle stop: strong ring + pulse; SVG lines get a thicker stroke */
+.node.search-current {
+  box-shadow: 0 0 0 4px var(--search-match);
+  animation: search-pulse 0.6s ease-out;
+}
+
+.member.search-current {
+  outline: 2px solid var(--search-match);
+  outline-offset: 1px;
+}
+
+.edge-g.search-current .edge-line {
+  stroke: var(--search-match);
+  stroke-width: 3;
+}
+
+@keyframes search-pulse {
+  0% {
+    box-shadow: 0 0 0 10px var(--search-match-bg);
+  }
+  100% {
+    box-shadow: 0 0 0 4px var(--search-match);
+  }
 }
 
 /* per-item accept chip (amber highlights accepted individually) */

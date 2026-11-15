@@ -1,8 +1,12 @@
 # Changelog
 
-## 1.2.3 — 10.11.2026
+## 1.3.0 — 15.11.2026
 
 ### Added
+- Toolbar search box: live filter/highlight over nodes, member rows (attributes/methods), node `dir` fields, relation labels/notes and notes — case-insensitive substring, space-separated tokens AND-ed. Non-matching nodes and relations dim (still clickable/editable); matching member rows highlight per-row, a member match keeps its node un-dimmed, a relation match un-dims its endpoints; removed-item tombstones participate like normal items.
+- `N of M` counter with ↑/↓ buttons (hidden while the box is empty): each matchable element is a cycle stop with wrap-around, pan-to-stop and a pulse ring on the current hit. `Enter`/`Shift+Enter` step through matches.
+- Shortcuts: `/` or `Ctrl/Cmd+F` focuses the box, `Esc` clears it. The filter is pure UI state — never saved to `diagram.json`.
+- New lime `--search-match` palette token, kept distinct from the amber used for unreviewed AI changes; defined for light and dark default themes and inherited by the palette variants.
 - Class directory targeting for `artuml scaffold` (contract unchanged at 2): right-click **Set directory…** next to **Edit note…** sets/clears the per-node `dir` (the folder where the CLI creates/moves the class file, now stored *relative to the default dir* — the CLI's `scaffoldDir` config, else its `--src` root); a **Dir** toolbar button edits the global `scaffoldDir` config (the ROOT all files live under, e.g. `src`).
 - Both controls appear in the embedded editor (`window.__ARTISAN__` present) and the served editor (gated on a live `/api` server after boot); the static web editor is unaffected, the `file://` embedded editor shows the button disabled.
 - The **Dir** button edits `scaffoldDir` live through the CLI's `GET/PUT /api/config`; per-node dirs persist through the served editor's normal `PUT /api/diagram` save.

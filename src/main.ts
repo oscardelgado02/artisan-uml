@@ -63,6 +63,8 @@ import {
   toast,
 } from './editors';
 import { copyPlantUML, downloadPlantUML, exportJSON, importJSONFile } from './exporters';
+import { computeSearch, search, searchActive } from './search';
+import type { Stop } from './search';
 import type { MenuEntry, MenuItem } from './types';
 import type { PendingRef } from './model';
 import { acceptedKeys, rejectedKeys, refKey } from './model';
@@ -725,6 +727,12 @@ document.addEventListener('keydown', e => {
     return;
   }
   const mod = e.ctrlKey || e.metaKey;
+  if (e.key === '/' || (mod && e.key.toLowerCase() === 'f')) {
+    e.preventDefault();
+    searchBox.focus();
+    searchBox.select();
+    return;
+  }
   if (e.key === 'Escape') {
     closePopovers();
     cancelLinkMode();
@@ -855,6 +863,72 @@ btnClear.addEventListener('click', () => {
   saveThrottled();
 });
 (document.getElementById('zoom-fit') as HTMLButtonElement).addEventListener('click', fitView);
+
+// ---- search box: live filter/highlight + ↑/↓ match cycling -----------------
+const searchBox = document.getElementById('search-box') as HTMLInputElement;
+const searchCount = document.getElementById('search-count') as HTMLSpanElement;
+const searchPrev = document.getElementById('search-prev') as HTMLButtonElement;
+const searchNext = document.getElementById('search-next') as HTMLButtonElement;
+
+function syncSearchControls(): void {
+  const active = searchActive();
+  searchCount.hidden = !active;
+  searchPrev.hidden = !active;
+  searchNext.hidden = !active;
+  const n = search.stops.length;
+  searchCount.textContent = n ? `${search.idx + 1} of ${n}` : 'no matches';
+  searchPrev.disabled = !n;
+  searchNext.disabled = !n;
+}
+
+function applySearch(): void {
+  computeSearch(searchBox.value);
+  renderAll();
+  syncSearchControls();
+}
+
+// Pan (no zoom) so the stop sits in the middle of the canvas.
+function panToStop(stop: Stop): void {
+  let el: Element | null = null;
+  if (stop.kind === 'node') el = nodesLayer.querySelector(`.node[data-id="${stop.id}"]`);
+  else if (stop.kind === 'member') el = nodesLayer.querySelector(`.member[data-mid="${stop.id}"]`);
+  else el = document.querySelector(`#edge-paths .edge-g[data-id="${stop.id}"]`);
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  const tl = toCanvas(r.left, r.top);
+  const cx = tl.x + r.width / (2 * state.cam.z);
+  const cy = tl.y + r.height / (2 * state.cam.z);
+  state.cam.x = wr.width / 2 - cx * state.cam.z;
+  state.cam.y = wr.height / 2 - cy * state.cam.z;
+  applyCam();
+  saveThrottled();
+}
+
+function gotoStop(dir: 1 | -1): void {
+  if (!search.stops.length) return;
+  search.idx = (search.idx + dir + search.stops.length) % search.stops.length;
+  renderAll();
+  panToStop(search.stops[search.idx]);
+  syncSearchControls();
+}
+
+searchBox.addEventListener('input', applySearch);
+searchBox.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    searchBox.value = '';
+    applySearch();
+    searchBox.blur();
+  } else if (e.key === 'Enter') {
+    gotoStop(e.shiftKey ? -1 : 1);
+  }
+});
+searchPrev.addEventListener('mousedown', e => e.preventDefault()); // keep focus in the box
+searchNext.addEventListener('mousedown', e => e.preventDefault());
+searchPrev.addEventListener('click', () => gotoStop(-1));
+searchNext.addEventListener('click', () => gotoStop(1));
 
 interface EmbeddedPayload {
   diagram?: SerializedDiagram;

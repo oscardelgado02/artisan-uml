@@ -57,4 +57,14 @@ const node = block('.node');
 assert.match(node, new RegExp(`max-width:\\s*${C.NODE_MAX_PX}px`), '.node max-width matches NODE_MAX_PX');
 console.log('  ok - CSS contract: name/params wrap, locked parts nowrap, node cap matches constants');
 
+// Search matcher contract (src/search-core.mjs — the pure half of the search box)
+const S = await import(new URL('src/search/core.mjs', here).href);
+assert.deepEqual(S.tokenize(' Foo  bar '), ['foo', 'bar'], 'tokenize splits + lowercases');
+assert.equal(S.matchesTokens(['foo', 'bar'], 'getfoo(bar): int'), true, 'AND: all tokens match');
+assert.equal(S.matchesTokens(['foo', 'bar'], 'getfoo: int'), false, 'AND: one missing token fails');
+assert.equal(S.matchesTokens(['FOO'], 'getfoo'), true, 'matches are case-insensitive');
+assert.equal(S.matchesTokens([], 'anything'), false, 'empty query matches nothing');
+assert.equal(S.searchableText(['Name', null, 'int', '']), 'name int', 'searchableText joins + lowercases');
+console.log('  ok - search-core matcher: tokenize, AND semantics, case-insensitive');
+
 console.log('\nAll editor contract checks passed.');
